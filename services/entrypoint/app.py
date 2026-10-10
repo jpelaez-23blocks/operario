@@ -74,7 +74,8 @@ def bearer(authorization: str = Header("")) -> None:
 
 @app.get("/health", dependencies=[Depends(bearer)])
 def health():
-    return {"ok": True, "model_ready": gw.ready}
+    missing = [n for n in ("OPENROUTER_API_KEY", "MODEL_FAST", "MODEL_STRONG") if not os.environ.get(n)]
+    return {"ok": True, "model_ready": gw.ready, "missing_env": missing}
 
 
 def _valid_desktop(d) -> bool:
