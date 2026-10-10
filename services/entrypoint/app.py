@@ -131,7 +131,10 @@ def list_tasks(limit: int = 20):
 def get_task(task_id: str):
     task = tasks.get(task_id)
     if task is None:
-        raise HTTPException(status_code=404, detail="unknown task")
+        # The registry is in memory and resets on a restart. Answer a terminal state so the
+        # evaluator closes the task instead of polling a 404 for the rest of its run.
+        return {"estado": "fallida",
+                "resumen": "La tarea no está registrada: el servicio se reinició antes de terminarla."}
     return {"estado": task["estado"], "resumen": task["resumen"]}
 
 
