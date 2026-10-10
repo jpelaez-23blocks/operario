@@ -12,6 +12,7 @@ import hmac
 import json
 import logging
 import os
+import re
 import time
 import uuid
 from pathlib import Path
@@ -36,6 +37,21 @@ HARD_END = float(os.environ.get("HARD_END_S", "285"))      # declare terminal be
 MAX_CONCURRENT = int(os.environ.get("MAX_CONCURRENT", "6"))
 
 app = FastAPI(title="Operario")
+
+
+class NormalizePath:
+    """Collapse repeated slashes and drop a trailing slash, so `//health` and `/tasks/` work."""
+
+    def __init__(self, inner):
+        self.inner = inner
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] in ("http", "websocket"):
+            path = re.sub(r"/{2,}", "/", scope["path"])
+            if len(path) > 1:
+                path = path.rstrip("/") or "/"
+            scope = dict(scope, path=path, raw_path=path.encode())
+        await self.inner(scope, receive, send)
 gw = Gateway()
 tasks: dict[str, dict] = {}
 _sem = asyncio.Semaphore(int(os.environ.get("MAX_CONCURRENT", "6")))
@@ -72,8 +88,11 @@ def bearer(authorization: str = Header("")) -> None:
         raise HTTPException(status_code=401, detail="unauthorized")
 
 
-@app.get("/health", dependencies=[Depends(bearer)])
-def health():
+@app.get("/health")
+def health(authorization: str = Header("")):
+    """Liveness is open (a bare 200). Diagnostics need the token."""
+    if not TEAM_TOKEN or not hmac.compare_digest(authorization, f"Bearer {TEAM_TOKEN}"):
+        return {"ok": True}
     missing = [n for n in ("OPENROUTER_API_KEY", "MODEL_FAST", "MODEL_STRONG") if not os.environ.get(n)]
     return {"ok": True, "model_ready": gw.ready, "missing_env": missing,
             "en_curso": sum(1 for t in tasks.values() if t["estado"] == "en_curso")}
@@ -176,3 +195,6 @@ async def _run(task_id: str, tarea: str, url: str, password: str) -> None:
         s = holder["session"]
         if s is not None:
             await s.close()
+
+
+app = NormalizePath(app)  # uvicorn serves this wrapper; routes above are on the inner FastAPI app

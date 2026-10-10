@@ -10,7 +10,7 @@ H = {"Authorization": "Bearer tok-test"}
 @pytest.mark.asyncio
 async def test_contract_auth_and_fast_post():
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=appmod.app), base_url="http://t") as c:
-        assert (await c.get("/health")).status_code == 401
+        assert (await c.get("/health")).json() == {"ok": True}
         assert (await c.get("/health", headers=H)).status_code == 200
         r = await c.post("/tasks", headers=H, json={"tarea": "x", "escritorio": {"url": "ws://127.0.0.1:1/w", "password": "pw-secret"}})
         assert r.status_code == 200
@@ -30,3 +30,15 @@ async def test_list_tasks_requires_token_and_hides_password():
         assert (await c.get("/tasks")).status_code == 401
         r = await c.get("/tasks", headers=H)
         assert r.status_code == 200 and "pw-secret" not in r.text
+
+
+@pytest.mark.asyncio
+async def test_path_spellings_and_open_liveness():
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=appmod.app), base_url="http://t") as c:
+        for path in ("/health", "/health/", "//health", "//health//"):
+            r = await c.get(path, headers=H)
+            assert r.status_code == 200 and r.json()["model_ready"] in (True, False), path
+            assert (await c.get(path)).status_code == 200
+        assert (await c.get("/tasks/", headers=H)).status_code == 200
+        assert (await c.get("//tasks", headers=H)).status_code == 200
+        assert (await c.get("//tasks")).status_code == 401
