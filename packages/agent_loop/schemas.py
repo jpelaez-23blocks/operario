@@ -9,10 +9,34 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 ACTIONS = ("click", "double_click", "type", "key", "scroll", "wait", "done")
 
 
+class Chained(BaseModel):
+    """A follow-up action run right after the main one, without a new screenshot."""
+    model_config = {"extra": "forbid"}
+    action: Literal["click", "type", "key"]
+    x: Optional[int] = None
+    y: Optional[int] = None
+    text: Optional[str] = Field(default=None, max_length=500)
+    replace: bool = False
+    keys: Optional[str] = None
+
+    @model_validator(mode="after")
+    def _shape(self):
+        if self.action == "click" and (self.x is None or self.y is None or not (0 <= self.x <= 1000 and 0 <= self.y <= 1000)):
+            raise ValueError("click encadenado requiere x e y en 0-1000")
+        if self.action == "type" and self.text is None:
+            raise ValueError("type encadenado requiere text")
+        if self.action == "key" and not self.keys:
+            raise ValueError("key encadenado requiere keys")
+        return self
+
+
+MAX_CHAIN = 2
+
+
 class Action(BaseModel):
     model_config = {"extra": "forbid"}
 
-    thought: str = Field(max_length=600)
+    thought: str = Field(max_length=2000)
     action: Literal["click", "double_click", "type", "key", "scroll", "wait", "done"]
     x: Optional[int] = None
     y: Optional[int] = None
@@ -20,12 +44,18 @@ class Action(BaseModel):
     replace: bool = False          # type: select all first, then type
     keys: Optional[str] = None     # key: "enter", "ctrl+a", ...
     dy: Optional[int] = None       # scroll notches, + down / - up
+    then: Optional[list[Chained]] = Field(default=None, max_length=MAX_CHAIN)
     # done
     estado: Optional[Literal["terminada", "fallida"]] = None
     respuesta: Optional[str] = Field(default=None, max_length=300)
     razon: Optional[str] = Field(default=None, max_length=600)
     claves: Optional[list[str]] = None
     evidencia: Optional[str] = Field(default=None, max_length=400)
+
+    @field_validator("thought")
+    @classmethod
+    def _short(cls, v):
+        return v[:300]
 
     @field_validator("x", "y")
     @classmethod
@@ -45,6 +75,8 @@ class Action(BaseModel):
             raise ValueError("type requiere text")
         if a == "key" and not self.keys:
             raise ValueError("key requiere keys")
+        if self.then and a not in ("click", "double_click", "type", "key"):
+            raise ValueError("then solo se permite tras click, type o key")
         if a == "done" and self.estado is None:
             raise ValueError("done requiere estado")
         if a == "done" and self.estado == "fallida" and not (self.razon or self.claves):
@@ -65,5 +97,6 @@ def action_schema_text() -> str:
     return (
         '{"thought": str, "action": "click|double_click|type|key|scroll|wait|done", '
         '"x": 0-1000, "y": 0-1000, "text": str, "replace": bool, "keys": str, "dy": int, '
+        '"then": [{"action": "click|type|key", "x", "y", "text", "replace", "keys"}] (max 2), '
         '"estado": "terminada|fallida", "respuesta": str, "razon": str, "claves": [str], "evidencia": str}'
     )

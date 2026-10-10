@@ -22,13 +22,19 @@ You receive the task, your action history and the current screenshot. You answer
 {action_schema_text()}
 First step, before anything else:
 - When the task contains any date-relative word (vencidas, hoy, ayer, atrasadas, pendientes, próximos, vigentes,
-  esta semana, este mes, or similar), first locate the app's displayed date on screen and record it in "thought".
-  All date comparisons use that date. Never use your own knowledge of the real date.
+  esta semana, este mes, or similar), first locate the app's displayed date on screen and record it in "thought"
+  on your first step. All date comparisons use that date. Never use your own knowledge of the real date.
+- Keep "thought" under 120 characters: what you see and what you do next. Do not repeat the date after the first step.
 Rules:
 - Coordinates x,y are normalized 0-1000 over the full screenshot (0,0 top-left). Aim at the center of the target.
 - One action per answer. After each action you get a new screenshot; check it before the next step.
 - The screen repaints up to 1 s after a click. If the screen looks unchanged, use "wait" once before retrying.
 - Typing into a field that already has text appends. Use "replace": true on type to select all first.
+- To save time you may chain up to 2 follow-up actions in "then" (click, type or key), run in order without a new
+  screenshot. Chain ONLY when every follow-up targets something already visible now that the first action cannot
+  move or change (for example: click a field, then type into it; type, then press tab). Never chain after an action
+  that opens a menu, dialog, dropdown or new page, and never chain a save, submit, export, delete or confirm click:
+  those need a fresh look first.
 - Never do anything the task did not ask for. No extra edits, no deletes, no duplicate records.
 - "Today" is the date the app shows, not your own knowledge.
 - Read before you write. If the task names a record (a person, an item) and the screen shows more than one
@@ -56,6 +62,10 @@ class Outcome:
     claves: list[str] = field(default_factory=list)
     evidencia: str = ""
     steps: int = 0
+
+
+def _px(a, width: int, height: int) -> tuple[int, int]:
+    return round(a.x * (width - 1) / 1000), round(a.y * (height - 1) / 1000)
 
 
 def _hash(png: bytes) -> str:
@@ -135,9 +145,15 @@ class AgentLoop:
         return v
 
     async def _act(self, a: Action) -> None:
+        await self._do(a)
+        for c in a.then or []:
+            await asyncio.sleep(0.35)  # the field must take focus before the next input
+            await self._do(c)
+
+    async def _do(self, a) -> None:
         w, h = self.s.width, self.s.height
         if a.action == "click":
-            await self.s.click(*a.px(w, h))
+            await self.s.click(*_px(a, w, h))
         elif a.action == "double_click":
             await self.s.double_click(*a.px(w, h))
         elif a.action == "type":
@@ -160,6 +176,9 @@ class AgentLoop:
             bits.append(f"text={a.text!r}{' replace' if a.replace else ''}")
         if a.keys:
             bits.append(f"keys={a.keys}")
+        for c in a.then or []:
+            bits.append(f"+ {c.action}" + (f"({c.x},{c.y})" if c.x is not None else "")
+                        + (f" text={c.text!r}" if c.text is not None else "") + (f" keys={c.keys}" if c.keys else ""))
         return " ".join(bits) + f" — {a.thought[:120]}"
 
     async def run(self) -> Outcome:
@@ -179,7 +198,7 @@ class AgentLoop:
             else:
                 stale, note = 0, note if note.startswith(("VERIFIER", "JEV")) else ""
             prev_hash, prev_png = h, png
-            tier = "strong" if stale >= 2 or self.verify_rejections else "fast"
+            tier = "strong" if stale >= 3 or self.verify_rejections else "fast"
             a = await self._decide(png, prev_png, note, tier)
             steps += 1
             self.emit(f"paso {steps}: {self._describe(a)}")
@@ -206,7 +225,8 @@ class AgentLoop:
                                    respuesta=a.respuesta if self.route in ("", "question") else None,
                                    evidencia=a.evidencia or v.evidencia, steps=steps)
                 return Outcome("fallida", razon=a.razon or "", claves=a.claves or [], steps=steps)
-            if a.action == "type" and self.ambiguity_blocks < 2 and len(self.history) >= 3 \
+            writes = a.action == "type" or any(c.action == "type" for c in a.then or [])
+            if writes and self.ambiguity_blocks < 2 and len(self.history) >= 3 \
                     and await self._gate_ambiguity() >= 0.9:
                 self.ambiguity_blocks += 1
                 self.history.append("held a write: Jev flagged possible ambiguity")
