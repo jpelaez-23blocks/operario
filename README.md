@@ -8,6 +8,9 @@ Un agente que aprende a operar sistemas de gestión sin API, por pantalla, y eje
 
 ```
 operario/
+├── challenge/                 # Input del reto (material del organizador)
+│   ├── README.md                # Contrato, física del escritorio, reglas de calificación
+│   └── tests/                   # Las 5 tareas de ejemplo (E1–E5)
 ├── documents/                 # Todos los documentos del diseño
 │   ├── resumen-diseno.pdf         # Doc de diseño (1 página) — entregable
 │   ├── diagrama-arquitectura.pdf  # Diagrama de arquitectura — entregable
