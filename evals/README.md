@@ -37,3 +37,20 @@ a whole day's transcript costs cents.
 This evals the *agents* (did Amanda / hack-frontier do what Juan asked?).
 Task performance (did Operario complete E1–E5?) is scored separately by
 `__check` and the repo's pytest suite.
+
+## Synthetic capability matrix
+
+`synthetic_matrix.py` is our own task eval beyond the 5 canonical examples:
+it generates synthetic scenarios across the 5 capabilities the hidden set
+grades (create, update, count, export, refuse), each with a self-verifiable
+outcome constructed by the harness (read-back queries, planted homonyms).
+
+- Runs each scenario from a clean `__reset` against the **deployed**
+  entrypoint — the real contract path.
+- Reports per-capability pass rates to `evals/reports/`.
+- 15 scenarios ≈ 40–70 min and a few dollars of model budget. Tune with
+  `--n`, `--only <capability>`, `--seed`.
+- Needs env: `PRACTICE_BASE`, `TEAM_TOKEN`, `ENTRYPOINT_URL`,
+  `DESKTOP_URL`, `DESKTOP_PASSWORD`.
+- Do not run during hidden-validation windows; it owns the practice desktop
+  while it runs.
