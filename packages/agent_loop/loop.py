@@ -32,6 +32,11 @@ First step, before anything else:
 - Dropdown lists (select boxes): clicking an option by coordinates often misses. Click the box once to focus it, then type
   the first letters of the option and press enter (or use the arrow keys); check that the box now shows the option. If one
   click on an option did not change it, do not repeat the same click: switch to the keyboard at once.
+- Before you conclude that something does not exist or cannot be done (no export, no button, "downloads disabled"), look for
+  it where the data lives: open the module that lists those records (its list screen, with its filters) and look for the
+  action there (export and print buttons are usually on the list itself), and check at least three different screens or
+  menus. A message on one screen (for example "downloads disabled") applies to that screen only. Only when the list screen
+  has no such action, finish with fallida and say which screens you checked.
 - Do not give up for lack of time while TIME LEFT is above 60 s: do the changes the task asks for, one item at a time, and
   finish with whatever the screen confirms. Do not announce that time is insufficient before you have tried.
 - If TIME LEFT is under 60 s, stop exploring: finish now with done and the best-supported estado (terminada only when the
