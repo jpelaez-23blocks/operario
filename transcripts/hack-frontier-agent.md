@@ -36,6 +36,23 @@ In progress. Updated at each milestone.
 - One terminal transition (`_finish`): it freezes VNC input first, then publishes. The first call wins.
 - Jev (third-party, TypeSafe `typesafe/jev-1.13`) fails open and is used only at decision gates.
 
+## 13:00 incident: platform validation got 404 on /health
+
+The platform registered the base URL with a trailing slash and called `//health`, which returned 404. Fix, pushed at `en_curso` 0 as `75c0d0c`: collapse repeated slashes and drop a trailing slash on every route; `/health` answers a bare 200 without a token (diagnostics need the token). Confirmed from outside on four spellings. My own error: a failed `sed` in a chained command let a broken test file go to `main` with the fix. The image does not contain tests; the test was fixed on a branch.
+
+## 13:20 performance incident: hidden run too slow
+
+Facts from `GET /tasks` on the public service (read by the agent): the evaluator sends one task at a time (overlap 2 only for two instant refusals); 10 tasks so far, 5 fallida, 4 terminada; three tasks hit the 4:30 cut at 264-269 s with 37-40 steps, so they failed on time. Measured per step: model call 3.3-3.8 s (fast tier), 8.9 s (strong tier), repaint wait about 1.3 s, Jev 0.3 s, JPEG encode 5 ms. Railway was not slower than local (public E1 105 s vs local 112 s). Conclusion: many model-call steps at about 7 s each. Fix: short thoughts and the date only in step 1, strong tier after 3 stale screens, and up to 2 chained actions per model call (never across menus/dialogs or save/submit/export/delete). On the practice desktop: E1 112->62 s, E2 107->57 s, E3 117->72 s, E4 81->77 s, E5 46->26 s, all `__check` true. Juan first ordered no deploy during the run, then ordered deploy; shipped as `37ff927` at 13:31.
+
+## Test totals (as of 12:57 MDT)
+
+- End-to-end task runs on a real desktop: 27. Hidden runs triggered by this agent: 0.
+  - Local entrypoint, 21 runs. 16 judged by `__check`: 13 PASS, 3 FAIL (two TLS errors on E1, one verifier crash on E3; both fixed). 5 free-form edge tasks judged by hand: 5 correct.
+  - Public URL, 6 runs. 3 real PASS (E1, E5, E3). 1 E1 FAIL and 1 false E5 "pass" while Railway had no model key (instant failure). 1 E3 lost to a redeploy mid-task, no verdict.
+- Unit tests: 9 at that time (12 now), all passing.
+- OpenRouter spend: about $2.22 of $45 from local ledgers; public-URL runs not included.
+- Counts rebuilt from the session record; local server logs were overwritten at each restart.
+
 ## Validated
 
 - [x] (local entrypoint, practice desktop) E1–E5 against `__check` from clean `__reset`
