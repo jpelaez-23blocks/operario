@@ -47,7 +47,7 @@ def persist() -> None:
     """Write the registry on every state transition (atomic rename)."""
     try:
         DATA_DIR.mkdir(parents=True, exist_ok=True)
-        public = {k: {"estado": v["estado"], "resumen": v["resumen"]} for k, v in tasks.items()}
+        public = dict(tasks)
         tmp = _state_file.with_suffix(".tmp")
         tmp.write_text(json.dumps(public))
         tmp.replace(_state_file)
@@ -61,7 +61,7 @@ async def _startup() -> None:
         try:
             for k, v in json.loads(_state_file.read_text()).items():
                 if v["estado"] == "en_curso":
-                    v = {"estado": "fallida", "resumen": "El servicio se reinició durante la tarea."}
+                    v = {**v, "estado": "fallida", "resumen": "El servicio se reinició durante la tarea."}
                 tasks[k] = v
         except (OSError, ValueError):
             log.exception("could not reload registry")
@@ -91,12 +91,21 @@ async def create_task(payload: dict):
     if not isinstance(tarea, str) or not tarea.strip() or not _valid_desktop(desk):
         raise HTTPException(status_code=422, detail="se requiere tarea y escritorio {url, password}")
     task_id = uuid.uuid4().hex
-    tasks[task_id] = {"estado": "en_curso", "resumen": ""}
+    tasks[task_id] = {"estado": "en_curso", "resumen": "", "tarea": tarea[:500], "inicio": time.time(), "pasos": []}
     persist()
     t = asyncio.create_task(_run(task_id, tarea.strip(), desk["url"], desk.get("password", "")))
     _bg.add(t)
     t.add_done_callback(_bg.discard)
     return {"task_id": task_id}
+
+
+@app.get("/tasks", dependencies=[Depends(bearer)])
+def list_tasks(limit: int = 20):
+    """Recent tasks for operators: no desktop URL or password is ever stored here."""
+    rows = sorted(tasks.items(), key=lambda kv: kv[1].get("inicio", 0), reverse=True)[:max(1, min(limit, 100))]
+    return [{"task_id": k, "estado": v["estado"], "tarea": v.get("tarea", ""), "resumen": v["resumen"],
+             "segundos": round(v.get("fin", time.time()) - v.get("inicio", time.time())),
+             "pasos": v.get("pasos", [])[-40:]} for k, v in rows]
 
 
 @app.get("/tasks/{task_id}", dependencies=[Depends(bearer)])
@@ -113,7 +122,7 @@ def _finish(task_id: str, estado: str, resumen: str, session: Optional[VncSessio
         session.freeze()
     if tasks[task_id]["estado"] != "en_curso":
         return
-    tasks[task_id] = {"estado": estado, "resumen": resumen}
+    tasks[task_id].update({"estado": estado, "resumen": resumen, "fin": time.time()})
     persist()
     log.info("task %s -> %s", task_id[:8], estado)
 
@@ -125,7 +134,9 @@ async def _run(task_id: str, tarea: str, url: str, password: str) -> None:
 
     def emit(msg: str) -> None:
         holder["emit"].append(msg)
-        log.info("task %s %s", task_id[:8], scrub(msg))
+        clean = scrub(msg)
+        tasks[task_id]["pasos"].append(f"{time.strftime('%H:%M:%S')} {clean}"[:300])
+        log.info("task %s %s", task_id[:8], clean)
 
     async def work() -> Outcome:
         async with _sem:

@@ -22,3 +22,11 @@ async def test_contract_auth_and_fast_post():
                 break
             await asyncio.sleep(0.5)
         assert g["estado"] == "fallida" and "pw-secret" not in g["resumen"]
+
+
+@pytest.mark.asyncio
+async def test_list_tasks_requires_token_and_hides_password():
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=appmod.app), base_url="http://t") as c:
+        assert (await c.get("/tasks")).status_code == 401
+        r = await c.get("/tasks", headers=H)
+        assert r.status_code == 200 and "pw-secret" not in r.text
