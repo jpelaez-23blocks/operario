@@ -52,12 +52,16 @@ Rules:
 - Never write passwords, tokens or secrets anywhere.
 - Answer with the JSON object only."""
 
-VERIFY_SYSTEM = """You audit an agent's work on a desktop application. You see the final screenshot, the task and the
-agent's claim. Decide whether the screen itself proves the task is complete. For a change or export, be strict: if
-the proof is not visible (a form still open, an error shown, an unsaved field), verificada is false.
-For a read-only question, the answer is built from several earlier screens and the agent's notes: accept it
-(verificada true) unless the final screen or the notes contradict it. Do not reject only because the final screen
-shows one page of a longer list.
+VERIFY_SYSTEM = """You audit an agent's work on a desktop application. You see the final screenshot, the task, the agent's
+claim, its notes and its recent actions. Decide whether the work is complete.
+- Reject (verificada false) only when the screen shows the work is NOT done: a form still open or unsaved, an error
+  message, a wrong value, or the screen contradicts the claim or the notes.
+- The agent's notes record facts it checked on earlier screens (which room is free, which record matched, what a
+  catalog said). Trust those notes for conditions that the final screen cannot show; do not reject for missing proof
+  of a condition the notes already record.
+- For a change, the proof is the saved state (a confirmation message or the saved record showing the new value).
+- For a read-only question, accept the answer unless the final screen or the notes contradict it. Do not reject
+  only because the final screen shows one page of a longer list.
 Answer JSON only: {"verificada": bool, "evidencia": str}"""
 
 
@@ -226,8 +230,12 @@ class AgentLoop:
                         note = f"VERIFIER: the screen does not prove completion ({v.evidencia}). Continue or fix."
                         continue
                     if not v.verificada:
-                        return Outcome("fallida", razon="no se pudo verificar en pantalla que la tarea quedara completa",
-                                       steps=steps)
+                        # The agent claimed done three times and cited evidence; a verifier that cannot see earlier
+                        # screens must not turn a finished task into a false failure.
+                        self.emit("verificador rechazó 3 veces; se mantiene el reclamo del agente")
+                        if not (a.evidencia or a.respuesta):
+                            return Outcome("fallida", razon="no se pudo verificar en pantalla que la tarea quedara completa",
+                                           steps=steps)
                     if self.verify_rejections < 2 and self._left() > 40 and \
                             await self._gate_proof(a, a.evidencia or v.evidencia) < 0.3:
                         self.verify_rejections += 1

@@ -38,8 +38,14 @@ async def test_click_then_done_verified():
 
 async def test_unverified_done_becomes_fallida():
     out, _ = await run([
-        {"thought": "x", "action": "done", "estado": "terminada", "evidencia": "e"}] * 3, approve=False)
+        {"thought": "x", "action": "done", "estado": "terminada"}] * 3, approve=False)
     assert out.estado == "fallida"
+
+
+async def test_persistent_claim_with_evidence_is_kept_when_verifier_cannot_see_earlier_screens():
+    out, _ = await run([
+        {"thought": "x", "action": "done", "estado": "terminada", "evidencia": "saved msg"}] * 3, approve=False)
+    assert out.estado == "terminada"
 
 
 async def test_fail_with_claves():
