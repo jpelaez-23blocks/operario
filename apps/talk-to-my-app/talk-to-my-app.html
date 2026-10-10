@@ -412,6 +412,20 @@
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .001ms !important; animation-duration: .001ms !important; animation-iteration-count: 1 !important; }
     }
+
+    .conn { margin: 0 0 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+    .conn summary { cursor: pointer; padding: 8px 12px; font-size: 12.5px; color: var(--muted); list-style: none; display: flex; align-items: center; gap: 8px; }
+    .conn summary::-webkit-details-marker { display: none; }
+    .conn-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); display: inline-block; }
+    .conn.ok .conn-dot { background: #2f9e5b; }
+    .conn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 4px 12px 12px; }
+    .conn-grid label { display: grid; gap: 3px; font-size: 11.5px; color: var(--muted); }
+    .conn-grid input { font: inherit; font-size: 13px; padding: 7px 9px; border: 1px solid var(--line-strong); border-radius: 7px; background: var(--surface); color: inherit; min-width: 0; }
+    .conn-note { grid-column: 1 / -1; font-size: 11.5px; color: var(--faint); }
+    .live-steps { margin: 8px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--muted); }
+    .live-steps li { margin: 2px 0; }
+    .answer-line { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: var(--accent-soft); font-weight: 600; }
+    .state-tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 99px; background: var(--surface-3); margin-left: 6px; }
   </style>
 </head>
 <body>
@@ -556,6 +570,16 @@
       </section>
 
       <footer class="composer-zone">
+        <details class="conn" id="conn">
+          <summary><span class="conn-dot"></span><span id="connLabel">Conectar a Operario (los datos solo viven en esta pestaña)</span></summary>
+          <div class="conn-grid">
+            <label>URL del entrypoint<input id="cEntry" type="url" placeholder="https://tu-operario.up.railway.app" autocomplete="off"></label>
+            <label>Token del equipo<input id="cToken" type="password" placeholder="Bearer token" autocomplete="off"></label>
+            <label>URL del escritorio (wss://…/websockify)<input id="cDesk" type="url" placeholder="wss://escritorio/websockify" autocomplete="off"></label>
+            <label>Contraseña del escritorio<input id="cPass" type="password" placeholder="contraseña" autocomplete="off"></label>
+            <div class="conn-note">No se guarda en el navegador ni en el repositorio. El navegador habla directo con el entrypoint.</div>
+          </div>
+        </details>
         <div class="offline-note" id="offlineNote" role="status">
           <svg class="icon" style="width:14px;height:14px" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
           Solo vista previa. Conecta un runtime de Operario para ejecutar.
@@ -605,7 +629,7 @@
           <div class="receipt-row"><span>Sesión</span><strong>OP-1048</strong></div>
           <div class="receipt-row"><span>Inicio</span><strong>12:04 PM</strong></div>
           <div class="receipt-row"><span>Acciones</span><strong>0 escrituras</strong></div>
-          <div class="receipt-row"><span>Pantallas revisadas</span><strong>4</strong></div>
+          <div class="receipt-row"><span>Duración</span><strong>4</strong></div>
         </div>
       </div>
     </aside>
@@ -646,7 +670,40 @@
         syncSidebarAccess();
       }
 
-      function addMessage(text) {
+      var conn = { entry: '', token: '', desk: '', pass: '' };
+      var runState = document.querySelector('.run-state');
+      var timeline = document.querySelector('.timeline');
+      var receipt = document.querySelector('.receipt');
+      var connBox = document.getElementById('conn');
+      var connLabel = document.getElementById('connLabel');
+      var busy = false;
+
+      function readConn() {
+        conn.entry = document.getElementById('cEntry').value.trim().replace(/\/+$/, '');
+        conn.token = document.getElementById('cToken').value.trim();
+        conn.desk = document.getElementById('cDesk').value.trim();
+        conn.pass = document.getElementById('cPass').value;
+        var ok = !!(conn.entry && conn.token && conn.desk);
+        connBox.classList.toggle('ok', ok);
+        var footer = document.querySelector('.connection span:last-child');
+        var sub = document.querySelector('.thread-subtitle');
+        if (footer) footer.textContent = ok ? 'Runtime conectado' : 'Sin runtime conectado';
+        if (sub) sub.lastChild.textContent = ok ? 'En vivo' : 'Vista previa';
+        connLabel.textContent = ok ? 'Conectado a ' + conn.entry.replace(/^https?:\/\//, '') : 'Conectar a Operario (los datos solo viven en esta pestaña)';
+        return ok;
+      }
+      ['cEntry', 'cToken', 'cDesk', 'cPass'].forEach(function (id) { document.getElementById(id).addEventListener('input', readConn); });
+
+      function api(path, opts) {
+        opts = opts || {};
+        opts.headers = Object.assign({ 'Authorization': 'Bearer ' + conn.token, 'Content-Type': 'application/json' }, opts.headers || {});
+        return fetch(conn.entry + path, opts).then(function (r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        });
+      }
+
+      function userBubble(text, stampText) {
         var article = document.createElement('article');
         article.className = 'message user';
         var bubble = document.createElement('div');
@@ -656,16 +713,109 @@
         bubble.appendChild(paragraph);
         var stamp = document.createElement('div');
         stamp.className = 'message-time';
-        stamp.textContent = 'Just now · Preview only';
+        stamp.textContent = stampText;
         article.appendChild(bubble);
         article.appendChild(stamp);
         conversation.appendChild(article);
+      }
 
+      function agentBubble() {
         var response = document.createElement('article');
         response.className = 'message agent';
-        response.innerHTML = '<div class="bubble"><div class="agent-mark"><span class="agent-symbol"><svg class="icon" style="width:14px;height:14px" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3"></path><circle cx="12" cy="12" r="4"></circle></svg></span>OPERARIO</div><div class="agent-copy"><p>Your instruction is ready. This interface preview is not connected to a live Operario runtime, so no app action was taken.</p></div></div><div class="message-time">Just now</div>';
+        response.innerHTML = '<div class="bubble"><div class="agent-mark"><span class="agent-symbol"><svg class="icon" style="width:14px;height:14px" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3"></path><circle cx="12" cy="12" r="4"></circle></svg></span>OPERARIO<span class="state-tag">en curso</span></div><div class="agent-copy"><p class="status-line">Enviando la tarea…</p><ol class="live-steps"></ol><div class="answer-line" hidden></div></div></div><div class="message-time">Ahora</div>';
         conversation.appendChild(response);
-        requestAnimationFrame(function () { conversation.scrollTop = conversation.scrollHeight; });
+        return response;
+      }
+
+      function scrollEnd() { requestAnimationFrame(function () { conversation.scrollTop = conversation.scrollHeight; }); }
+
+      // "paso 3: click (12,34) — thought" -> {act, thought}
+      function parseSteps(lines) {
+        var out = [];
+        (lines || []).forEach(function (l) {
+          var m = /paso (\d+): (.*?) — (.*)$/.exec(l);
+          if (m) out.push({ n: +m[1], act: m[2], thought: m[3] });
+        });
+        return out;
+      }
+
+      function paint(bubble, task, started) {
+        var steps = parseSteps(task.pasos);
+        var tag = bubble.querySelector('.state-tag');
+        var status = bubble.querySelector('.status-line');
+        var list = bubble.querySelector('.live-steps');
+        var terminal = task.estado !== 'en_curso';
+        tag.textContent = task.estado === 'terminada' ? 'terminada' : task.estado === 'fallida' ? 'fallida' : 'en curso';
+        runState.textContent = tag.textContent;
+        status.textContent = terminal ? '' : (steps.length ? 'Paso ' + steps[steps.length - 1].n + ': ' + steps[steps.length - 1].thought : 'Conectando con el escritorio…');
+        list.textContent = '';
+        steps.slice(-6).forEach(function (st) {
+          var li = document.createElement('li');
+          li.textContent = st.thought;
+          list.appendChild(li);
+        });
+        timeline.textContent = '';
+        steps.slice(-8).forEach(function (st, i, arr) {
+          var li = document.createElement('li');
+          li.className = (i === arr.length - 1 && !terminal) ? 'active' : 'done';
+          var dot = document.createElement('span'); dot.className = 'timeline-dot';
+          var strong = document.createElement('strong'); strong.textContent = 'Paso ' + st.n;
+          var sub = document.createElement('span'); sub.textContent = st.thought.slice(0, 90);
+          li.appendChild(dot); li.appendChild(strong); li.appendChild(sub);
+          timeline.appendChild(li);
+        });
+        var rows = receipt.querySelectorAll('.receipt-row strong');
+        if (rows.length >= 4) {
+          rows[0].textContent = task.task_id ? task.task_id.slice(0, 8) : '—';
+          rows[1].textContent = started;
+          rows[2].textContent = steps.length + ' pasos';
+          rows[3].textContent = (task.segundos != null ? task.segundos + ' s' : '—');
+        }
+        if (terminal) {
+          var answer = bubble.querySelector('.answer-line');
+          var text = task.resumen || '';
+          var m = /^respuesta:\s*(.*)$/mi.exec(text);
+          answer.hidden = false;
+          answer.textContent = '';
+          if (m) {
+            answer.textContent = 'Respuesta: ' + m[1];
+            var rest = document.createElement('p'); rest.textContent = text.replace(m[0], '').trim();
+            if (rest.textContent) bubble.querySelector('.agent-copy').appendChild(rest);
+          } else {
+            answer.textContent = text || (task.estado === 'terminada' ? 'Tarea terminada.' : 'La tarea falló.');
+          }
+        }
+        scrollEnd();
+      }
+
+      function run(text) {
+        var started = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        userBubble(text, started);
+        var bubble = agentBubble();
+        scrollEnd();
+        busy = true;
+        api('/tasks', { method: 'POST', body: JSON.stringify({ tarea: text, escritorio: { url: conn.desk, password: conn.pass } }) })
+          .then(function (res) {
+            var id = res.task_id;
+            runState.textContent = 'en curso';
+            function tick() {
+              api('/tasks?limit=50').then(function (rows) {
+                var task = rows.filter(function (r) { return r.task_id === id; })[0];
+                if (!task) return api('/tasks/' + id).then(function (t) { t.task_id = id; t.pasos = []; return t; });
+                return task;
+              }).then(function (task) {
+                paint(bubble, task, started);
+                if (task.estado === 'en_curso') setTimeout(tick, 3000);
+                else busy = false;
+              }).catch(function () { setTimeout(tick, 5000); });
+            }
+            tick();
+          })
+          .catch(function (e) {
+            busy = false;
+            bubble.querySelector('.status-line').textContent = 'No se pudo enviar la tarea (' + e.message + '). Revisa la conexión, el token y el CORS del entrypoint.';
+            bubble.querySelector('.state-tag').textContent = 'error';
+          });
       }
 
       input.addEventListener('input', resizeInput);
@@ -679,11 +829,17 @@
       form.addEventListener('submit', function (event) {
         event.preventDefault();
         var text = input.value.trim();
-        if (!text) return;
-        addMessage(text);
+        if (!text || busy) return;
+        if (!readConn()) {
+          offlineNote.classList.add('show');
+          offlineNote.lastChild.textContent = ' Completa la conexión (entrypoint, token y escritorio) para ejecutar.';
+          connBox.open = true;
+          return;
+        }
+        offlineNote.classList.remove('show');
+        run(text);
         input.value = '';
         resizeInput();
-        offlineNote.classList.add('show');
       });
 
       document.querySelectorAll('[data-prompt]').forEach(function (button) {

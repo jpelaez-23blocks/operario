@@ -20,6 +20,7 @@ from typing import Optional
 from urllib.parse import urlparse
 
 from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 from packages.agent_loop.loop import AgentLoop, Outcome
 from packages.model_gateway.gateway import BudgetExceeded, Gateway
@@ -37,6 +38,14 @@ HARD_END = float(os.environ.get("HARD_END_S", "285"))      # declare terminal be
 MAX_CONCURRENT = int(os.environ.get("MAX_CONCURRENT", "6"))
 
 app = FastAPI(title="Operario")
+# The Talk to My App page calls the API from a browser. Auth is a Bearer header, not cookies,
+# so a wildcard origin adds no cookie exposure. Set CORS_ORIGINS (comma list) to restrict it.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[o.strip() for o in os.environ.get("CORS_ORIGINS", "*").split(",") if o.strip()],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
+)
 
 
 class NormalizePath:
