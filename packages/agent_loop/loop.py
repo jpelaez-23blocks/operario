@@ -55,6 +55,10 @@ Rules:
   contradicts any part of that description, or there are two records that fit, do NOT change anything: finish with
   fallida and put the identifying values of each candidate in "claves".
 - If the task asks for two values and you can read only one, finish with fallida and no "respuesta".
+- A form that already showed a confirmation ("Cambios aplicados" or similar) for your change stays open and a second
+  Aplicar/Guardar/Crear on it can create a DUPLICATE record. Never apply it again. To re-check, reopen the record from
+  its list. If a form from before your task is already open on the first screenshot, do not type into it: use the menu
+  to open the list and the record fresh.
 - Never write passwords, tokens or secrets anywhere.
 - Answer with the JSON object only."""
 
