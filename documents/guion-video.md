@@ -1,97 +1,143 @@
-# Operario — Guion del video (2:00 máx)
+# OPERARIO — "Marta" · Comercial 2:00 — guion de rodaje v4
 
-Voz en off en español. Sin diálogos de personajes: es una pieza de
-demostración narrada. Metraje héroe = capturas reales de pantalla
-(consola Talk to My App + agente operando el escritorio).
+## Personajes
 
----
+- **MARTA (50s):** administradora de bodega en ACME. La única que entiende
+  el sistema legacy. Pared: calendario con "VACACIONES" tachado tres veces.
+  Fondo de pantalla: una playa del Caribe.
+- **NARRADOR (VO):** español, seguro, con chispa. El humor es visual y seco,
+  nunca payasada.
 
-## ESCENA 1 — El problema (0:00–0:15)
+## Concepto
 
-**VISUAL:** Montaje de aplicaciones de escritorio viejas: formularios
-grises, menús anidados, un cursor que duda. Ritmo tenso.
-
-**NARRACIÓN:**
-> "Miles de empresas corren su negocio en aplicaciones de escritorio
-> que no tienen API. El RPA tradicional les pone scripts frágiles
-> encima… que se rompen cada vez que cambia una pantalla."
-
-**TEXTO EN PANTALLA:** "El último kilómetro de la automatización"
+El dolor real: solo Marta sabe operar la app. Operario no es "un empleado
+nuevo al que hay que entrenar" — es el mejor operador desde el primer día.
+Remate: Marta por fin es libre (casi).
 
 ---
 
-## ESCENA 2 — El pitch (0:15–0:30)
+## ESCENA 1 — INT. OFICINA BODEGA ACME — DÍA (0:00–0:22)
 
-**VISUAL:** Corte a limpio. Logo/título "OPERARIO". La consola
-Talk to My App, cursor parpadeando en el campo de texto.
+**CÁMARA:** Plano general de bodega viva. Travelling a la oficina vidriada.
+Plano medio de Marta. Cámara al hombro, leve inestabilidad.
 
-**NARRACIÓN:**
-> "Operario es distinto. Escribes la tarea en lenguaje natural, y un
-> agente opera la aplicación como un empleado nuevo: mira la pantalla,
-> decide, actúa y verifica."
+**LUCES:** Bodega cálida; oficina en fluorescente plano, desaturado.
 
-**TEXTO EN PANTALLA:** "Lenguaje natural → aplicación real"
+**ACCIÓN / HUMOR:** Marta minimiza SIGECOM un segundo: su fondo de
+pantalla es una playa del Caribe. La mira. Suspira. Maximiza SIGECOM.
+Suena el teléfono.
 
----
+**DIÁLOGO:**
+> **MARTA** (al teléfono, seca): ¿Vacaciones en diciembre? Sí, claro…
+> y yo soy la reina del inventario. *(cuelga)*
 
-## ESCENA 3 — La demo en vivo (0:30–1:15)
+**VO:**
+> "Marta lleva quince años operando el sistema de ACME. Una aplicación
+> sin API que solo ella entiende. Cuando Marta no está… ACME no despacha."
 
-**VISUAL:** Captura real, sin cortes falsos.
-
-- 0:30 — Consola. Se escribe la tarea.
-- 0:40 — Se envía. Indicador de progreso: "en curso".
-- 0:45 — El escritorio: el agente abre el módulo de clientes.
-- 0:55 — Completa cada campo del formulario.
-- 1:05 — Guarda. La pantalla muestra el registro creado (evidencia).
-- 1:10 — Vuelve la respuesta: resumen de la tarea terminada.
-
-**NARRACIÓN:**
-> "Mira cómo funciona." *(0:30)*
-> "Le pido en español: registra este cliente." *(0:35, mientras se escribe)*
-> "El agente abre el módulo de clientes…" *(0:45)*
-> "…completa cada campo…" *(0:55)*
-> "…guarda, y confirma con evidencia en pantalla." *(1:05)*
-> "Tarea terminada, con resumen verificable." *(1:10)*
-
-**TEXTO EN PANTALLA:** durante el progreso, "en curso…"; al final, el resumen.
+**TEXTO EN PANTALLA:** "ACME · 15 años con la misma aplicación"
 
 ---
 
-## ESCENA 4 — Diferenciadores (1:15–1:45)
+## ESCENA 2 — La solución / el momento wow (0:22–0:42)
 
-**VISUAL:** Diagrama de arquitectura simplificado / overlays gráficos:
-ojos → juez; esquema JSON; sello de "rehusado con explicación".
+**CÁMARA:** Corte seco a limpio. La consola Talk to My App LLENA EL
+ENCUADRE — es la estrella. Travelling lento hacia el campo de texto.
+Los prompts de ejemplo visibles ("Registra un cliente…", "¿Cuántas
+facturas vencidas…?"). La tarea se escribe sola, letra por letra. El
+botón de enviar pulsa. "En curso" cobra vida.
 
-**NARRACIÓN:**
-> "¿Qué lo hace diferente?"
-> "Primero: una capa de juicio con IA tipada. El modelo de visión son
-> los ojos; Jev es el juez."
-> "Segundo: esquemas de acción estrictos. El agente solo puede hacer
-> lo que el esquema permite."
-> "Tercero: nunca adivina. Si la tarea es ambigua o imposible, la rehúsa
-> explicando por qué."
+**LUCES:** Modernas, alto contraste. Oscuro + acento verde. La consola
+brilla: es el futuro entrando en la oficina de Marta.
 
-**TEXTO EN PANTALLA:** "Ojos → Juez · Esquemas estrictos · Nunca adivina"
+**VO:**
+> "Operario no necesita ser Marta. No necesita entrenamiento, ni
+> manuales, ni quince años. Le hablas a tu aplicación como le hablas
+> a una persona…"
+> *(la tarea se envía)*
+> "…y opera como el mejor operador: mira la pantalla, decide, actúa y
+> verifica. Desde el primer día."
+
+**TEXTO EN PANTALLA:** "Háblale a tu aplicación"
 
 ---
 
-## ESCENA 5 — Cierre (1:45–2:00)
+## ESCENA 3 — Demo real (0:42–1:10)
 
-**VISUAL:** Fondo limpio. URLs en pantalla.
+**CÁMARA:** Captura real, sin cortes falsos.
 
-**NARRACIÓN:**
-> "Operario. Del lenguaje natural a la aplicación real.
-> Construido por Juan Peláez."
+- 0:40 — Consola: se escribe la tarea.
+- 0:47 — "en curso".
+- 0:51 — Escritorio: abre el módulo de clientes.
+- 0:58 — Completa cada campo.
+- 1:04 — Guarda. Evidencia en pantalla.
+- 1:06 — Resumen: tarea terminada.
 
-**TEXTO EN PANTALLA:**
-> github.com/jpelaez-23blocks/operario
-> operario-production.up.railway.app
+**VO:**
+> "Mira: le pido que registre un cliente."
+> "El agente abre el módulo… completa cada campo… guarda, y confirma
+> con evidencia en pantalla."
+> "Tarea terminada, con resumen verificable."
+
+---
+
+## ESCENA 4 — Cómo está construido (1:10–1:30)
+
+**CÁMARA:** Motion graphics, diagrama animado.
+
+**VO:**
+> "¿Por dentro? Un ciclo que percibe, interpreta, planea, actúa y
+> verifica — una sola acción por captura."
+> "Una capa de juicio con IA tipada: la visión son los ojos, Jev es
+> el juez. Esquemas estrictos. Y nunca adivina: si algo es ambiguo,
+> lo rehúsa explicando por qué."
+
+**TEXTO EN PANTALLA:** "percibir → interpretar → planear → actuar → verificar"
+
+---
+
+## ESCENA 5 — Múltiples apps (1:30–1:48)
+
+**CÁMARA:** Split screen: SIGECOM (mañana) | pantallas nuevas (tarde).
+
+**VO:**
+> "Y no memoriza pantallas: las descubre. Esta mañana aprendió el
+> sistema de ACME… y esta tarde, con las pantallas cambiadas por
+> completo, aprendió el nuevo sin cambiar una línea de código."
+
+**TEXTO EN PANTALLA:** "Un agente. Cualquier aplicación."
+
+---
+
+## ESCENA 6 — Marta libre (1:48–2:00) · REMATE
+
+**CÁMARA:** Plano abierto: playa del Caribe — LA DEL FONDO DE PANTALLA.
+Marta con gafas de sol. Su teléfono, boca abajo sobre la toalla, vibra:
+ni lo mira. Corte a puerta de oficina: "MARTA · VICEPRESIDENTA DE
+OPERACIONES". Marta entra con su café, saluda a su equipo.
+
+**LUCES:** Playa sobreexpuesta, cálida, feliz. Oficina: luz natural,
+moderna (ya no fluorescente).
+
+**VO:**
+> "¿Y Marta? Se tomó esas tres semanas en la playa. Cero llamadas."
+> "Y cuando volvió, la ascendieron: ahora dirige operaciones."
+> "El sistema… lo opera Operario."
+> "Operario. Construido por Juan Peláez."
+
+**TEXTO EN PANTALLA:** github.com/jpelaez-23blocks/operario
+
+*Nota de tono: Marta no pierde su trabajo — lo supera. El software la
+libera, no la reemplaza. Nada en el video puede leerse como un despido.*
 
 ---
 
 ## Notas de producción
 
-- Duración total verificada ≤ 2:00 (como los 90.000 s del comercial de Nury).
-- 1920×1080, H.264/AAC. Enlace público (YouTube no listado).
-- Metraje de la Escena 3: lo graba el crew (post-incidente preferido).
-- Sin secretos en pantalla: difuminar tokens/contraseñas en las capturas.
+- ≤ 2:00, 1920×1080, H.264/AAC, enlace público.
+- Escenas 1 y 6: IA (Marta consistente) o stock; decide el productor.
+- Escenas 3 y 5: capturas reales del crew (post-incidente preferido).
+- Escena 5 solo si el incidente sale bien; si no, cierre en Escena 4
+  y la 6 igual funciona.
+- Sin secretos en pantalla: difuminar tokens/contraseñas.
+- Narración en forma hablada (~1.800 caracteres ≈ 115 s de voz).

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -428,7 +428,7 @@
 
       <button class="new-thread" id="newThread" type="button">
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-        New conversation
+        Nueva conversación
       </button>
 
       <div class="nav-label">Workspace</div>
@@ -453,13 +453,13 @@
 
       <div class="nav-label">Recent</div>
       <div class="recent">
-        <button class="recent-item" type="button"><strong>Move Andrea's cleaning</strong><span>Today · Awaiting review</span></button>
-        <button class="recent-item" type="button"><strong>Tomorrow's open slots</strong><span>Yesterday · Completed</span></button>
-        <button class="recent-item" type="button"><strong>Export September invoices</strong><span>Oct 8 · Completed</span></button>
+        <button class="recent-item" type="button"><strong>Papelería Los Andes</strong><span>Hoy · Terminada</span></button>
+        <button class="recent-item" type="button"><strong>Huecos de mañana</strong><span>Ayer · Completada</span></button>
+        <button class="recent-item" type="button"><strong>Exportar facturas</strong><span>Oct 8 · Completada</span></button>
       </div>
 
       <div class="sidebar-foot">
-        <div class="connection"><span class="pulse-dot"></span><span>No runtime connected</span></div>
+        <div class="connection"><span class="pulse-dot"></span><span>Sin runtime conectado</span></div>
       </div>
     </aside>
 
@@ -472,12 +472,12 @@
         </button>
         <div class="thread-title">
           <h1>Practice desktop</h1>
-          <div class="thread-subtitle"><span class="live-dot"></span>Interface preview</div>
+          <div class="thread-subtitle"><span class="live-dot"></span>Vista previa</div>
         </div>
         <div class="top-actions">
           <span class="mode-pill">
             <svg class="icon" style="width:13px;height:13px" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
-            Review before changes
+            Revisar antes de cambiar
           </span>
           <button class="icon-button more" type="button" aria-label="Conversation options">
             <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1" fill="currentColor" stroke="none"/></svg>
@@ -488,21 +488,21 @@
       <section class="conversation" id="conversation" aria-label="Conversation">
         <div class="mobile-run">
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 22h8M12 18v4"/></svg>
-          Practice Desktop preview <span>No runtime</span>
+          Vista previa <span>Sin runtime</span>
         </div>
 
         <div class="welcome">
-          <h2>What should we do?</h2>
-          <p>Describe the result in everyday language. Operario will inspect the app, show its plan, and pause before any sensitive change.</p>
+          <h2>¿Qué hacemos?</h2>
+          <p>Describe el resultado en lenguaje cotidiano. Operario inspecciona la app, muestra su plan y pausa antes de cualquier cambio sensible.</p>
           <div class="prompt-row" aria-label="Example commands">
-            <button class="prompt-chip" type="button" data-prompt="Show me tomorrow's open appointments">Find open appointments</button>
-            <button class="prompt-chip" type="button" data-prompt="Reschedule an appointment for next Thursday">Reschedule a visit</button>
-            <button class="prompt-chip" type="button" data-prompt="Export this month's invoices as a CSV">Export invoices</button>
+            <button class="prompt-chip" type="button" data-prompt="Registra al cliente Papelería Los Andes, NIT 901234567, teléfono 3157654321, ciudad Pereira.">Registra un cliente</button>
+            <button class="prompt-chip" type="button" data-prompt="¿Cuántas facturas vencidas tiene Ferretería Ruiz?">Cuenta facturas vencidas</button>
+            <button class="prompt-chip" type="button" data-prompt="Exporta el reporte de pedidos entregados de septiembre de 2026.">Exporta pedidos</button>
           </div>
         </div>
 
         <article class="message user">
-          <div class="bubble"><p>Move Andrea’s cleaning to Thursday, October 15, 2026 at 2 PM and prepare a confirmation.</p></div>
+          <div class="bubble"><p>Registra al cliente Papelería Los Andes, NIT 901234567, teléfono 3157654321, ciudad Pereira.</p></div>
           <div class="message-time">12:04 PM</div>
         </article>
 
@@ -515,8 +515,8 @@
               OPERARIO
             </div>
             <div class="agent-copy">
-              <p>I found one matching appointment for Andrea M. Thursday, October 15, 2026 at 2:00 PM is open.</p>
-              <p>Review the change below. Nothing will be changed until you approve it.</p>
+              <p>Encontré el módulo de clientes, completé los cuatro campos y guardé el registro.</p>
+              <p>Revisa el resultado abajo. Todo quedó verificado en pantalla.</p>
             </div>
 
             <div class="action-sheet">
@@ -524,30 +524,30 @@
                 <div class="action-icon">
                   <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.8 2.5 17.3A2 2 0 0 0 4.2 20h15.6a2 2 0 0 0 1.7-2.7L13.7 3.8a2 2 0 0 0-3.4 0Z"/></svg>
                 </div>
-                <div class="action-title"><strong>Appointment change</strong><span>Andrea M. · Cleaning</span></div>
-                <span class="review-tag">Needs review</span>
+                <div class="action-title"><strong>Cliente registrado</strong><span>Papelería Los Andes · NIT 901234567</span></div>
+                <span class="review-tag">Verificado</span>
               </div>
               <div class="change">
                 <div class="change-block">
-                  <div class="change-label">CURRENT</div>
-                  <div class="change-value">Tuesday, October 13 · 10:30 AM</div>
-                  <div class="change-note">Dr. Patel · Room 2</div>
+                  <div class="change-label">REGISTRO</div>
+                  <div class="change-value">Papelería Los Andes</div>
+                  <div class="change-note">Pereira · 3157654321</div>
                 </div>
                 <svg class="icon change-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                 <div class="change-block">
-                  <div class="change-label">PROPOSED</div>
-                  <div class="change-value">Thursday, October 15 · 2:00 PM</div>
-                  <div class="change-note">Dr. Patel · Room 2</div>
+                  <div class="change-label">ESTADO</div>
+                  <div class="change-value">Guardado y verificado</div>
+                  <div class="change-note">Pereira · 3157654321</div>
                 </div>
               </div>
               <div class="detail-panel" id="detailPanel">
-                <div class="detail-line"><span>Patient match</span><strong>Andrea M. · ending 0184</strong></div>
-                <div class="detail-line"><span>Conflict check</span><strong>No conflict found</strong></div>
-                <div class="detail-line"><span>Notification</span><strong>Prepared, not sent</strong></div>
+                <div class="detail-line"><span>Cliente</span><strong>Papelería Los Andes · NIT 901234567</strong></div>
+                <div class="detail-line"><span>Verificación</span><strong>Registro visible en pantalla</strong></div>
+                <div class="detail-line"><span>Resumen</span><strong>Terminada con evidencia</strong></div>
               </div>
               <div class="action-buttons">
-                <button class="secondary-button" id="reviewDetails" type="button" aria-expanded="false">Review details</button>
-                <button class="primary-button" type="button" disabled title="Connect an Operario runtime to approve changes">Connect runtime to approve</button>
+                <button class="secondary-button" id="reviewDetails" type="button" aria-expanded="false">Revisar detalles</button>
+                <button class="primary-button" type="button" disabled title="Connect an Operario runtime to approve changes">Conecta un runtime para aprobar</button>
               </div>
             </div>
           </div>
@@ -558,26 +558,26 @@
       <footer class="composer-zone">
         <div class="offline-note" id="offlineNote" role="status">
           <svg class="icon" style="width:14px;height:14px" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
-          Interface preview only. Connect an Operario runtime to execute commands.
+          Solo vista previa. Conecta un runtime de Operario para ejecutar.
         </div>
         <form class="composer" id="composerForm">
-          <textarea id="messageInput" rows="1" maxlength="1200" aria-label="Instruction" placeholder="Tell Operario what to do…"></textarea>
+          <textarea id="messageInput" rows="1" maxlength="1200" aria-label="Instruction" placeholder="Dile a Operario qué hacer…"></textarea>
           <div class="composer-foot">
             <button class="composer-tool" type="button" aria-label="Attach reference" title="Attach reference">
               <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.4 11.6-8.9 8.9a6 6 0 0 1-8.5-8.5l9.6-9.6a4 4 0 0 1 5.7 5.7l-9.6 9.6a2 2 0 1 1-2.8-2.8l8.9-8.9"/></svg>
             </button>
-            <span class="input-status" id="inputStatus">Plain language works best</span>
+            <span class="input-status" id="inputStatus">El lenguaje cotidiano funciona mejor</span>
             <button class="send-button" id="sendButton" type="submit" aria-label="Send instruction" disabled>
               <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 14-7-4 14-3-6-7-1Z"/><path d="m12 13 7-8"/></svg>
             </button>
           </div>
         </form>
-        <div class="composer-hint"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> to send · Operario asks before sensitive changes</div>
+        <div class="composer-hint"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> to send · Operario pregunta antes de cambios sensibles</div>
       </footer>
     </main>
 
     <aside class="run-panel" aria-label="Current run">
-      <div class="run-head"><strong>Current run</strong><span class="run-state">Waiting</span></div>
+      <div class="run-head"><strong>Ejecución actual</strong><span class="run-state">En espera</span></div>
       <div class="run-scroll">
         <div class="screen-preview" aria-label="Abstract preview of the connected desktop">
           <div class="preview-bar"><i></i><i></i><i></i></div>
@@ -592,20 +592,20 @@
         </div>
         <div class="preview-caption"><span class="pulse-dot"></span>Practice Desktop · Preview frame</div>
 
-        <div class="section-title">Run progress</div>
+        <div class="section-title">Progreso</div>
         <ol class="timeline">
-          <li class="done"><span class="timeline-dot"></span><strong>Matched the patient</strong><span>1 record matched “Andrea M.”</span></li>
-          <li class="done"><span class="timeline-dot"></span><strong>Checked availability</strong><span>October 15 at 2:00 PM is open</span></li>
-          <li class="done"><span class="timeline-dot"></span><strong>Prepared the change</strong><span>No changes made yet</span></li>
-          <li class="active"><span class="timeline-dot"></span><strong>Waiting for your review</strong><span>The desktop is paused</span></li>
+          <li class="done"><span class="timeline-dot"></span><strong>Abrió el módulo</strong><span>Localizó Clientes</span></li>
+          <li class="done"><span class="timeline-dot"></span><strong>Completó el formulario</strong><span>Cuatro campos diligenciados</span></li>
+          <li class="done"><span class="timeline-dot"></span><strong>Guardó el registro</strong><span>Cliente creado y verificado</span></li>
+          <li class="active"><span class="timeline-dot"></span><strong>Tarea terminada</strong><span>Resumen verificable</span></li>
         </ol>
 
-        <div class="section-title">Run receipt</div>
+        <div class="section-title">Recibo</div>
         <div class="receipt">
-          <div class="receipt-row"><span>Session</span><strong>OP-1048</strong></div>
-          <div class="receipt-row"><span>Started</span><strong>12:04 PM</strong></div>
-          <div class="receipt-row"><span>Actions</span><strong>0 writes</strong></div>
-          <div class="receipt-row"><span>Screens reviewed</span><strong>4</strong></div>
+          <div class="receipt-row"><span>Sesión</span><strong>OP-1048</strong></div>
+          <div class="receipt-row"><span>Inicio</span><strong>12:04 PM</strong></div>
+          <div class="receipt-row"><span>Acciones</span><strong>0 escrituras</strong></div>
+          <div class="receipt-row"><span>Pantallas revisadas</span><strong>4</strong></div>
         </div>
       </div>
     </aside>
@@ -630,7 +630,7 @@
         input.style.height = Math.min(input.scrollHeight, 150) + 'px';
         var length = input.value.trim().length;
         send.disabled = length === 0;
-        inputStatus.textContent = length > 1000 ? (1200 - input.value.length) + ' characters left' : 'Plain language works best';
+        inputStatus.textContent = length > 1000 ? (1200 - input.value.length) + ' characters left' : 'El lenguaje cotidiano funciona mejor';
       }
 
       function syncSidebarAccess() {
