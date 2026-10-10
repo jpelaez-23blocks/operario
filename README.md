@@ -21,6 +21,8 @@ export DATA_DIR=/tmp/operario-data       # registro de tareas y contador de gast
 uvicorn services.entrypoint.app:app --host 127.0.0.1 --port 8000
 ```
 
+Si el puerto 8000 ya está ocupado, cambia `--port 8000` por otro (p. ej. `8001`) y usa ese número en los comandos de abajo.
+
 En otra terminal, comprueba que responde:
 
 ```bash
