@@ -1,17 +1,17 @@
 # Transcripts
 
-Evidencia de orquestación de agentes — deliverable del hackathon ("you hand over the transcripts, and they evaluate how you orchestrate them").
+Agent orchestration evidence — a hackathon deliverable ("you hand over the transcripts, and they evaluate how you orchestrate them").
 
-## Convención
+## Convention
 
-- Un archivo por agente/fase: `<agente>-<fase>.md`.
-- Transcripción **limpia**: decisiones, acciones y validaciones, sin dumps crudos. Lo que un juez necesita para evaluar *cómo* se orquestó el trabajo.
-- Sin secretos: nunca API keys, tokens, contraseñas ni credenciales.
-- El agente que trabaja escribe su propio transcript al cerrar su fase.
+- One file per agent/phase: `<agent>-<phase>.md`.
+- Format: the chat — received messages/directions and what each one produced, lightly cleaned. Not a summary: the back-and-forth must show.
+- No secrets: never API keys, tokens, passwords, or credentials.
+- The agent doing the work writes its own transcript when closing its phase.
 
-## Archivos
+## Files
 
-| Archivo | Agente | Fase |
+| File | Agent | Phase |
 |---|---|---|
-| `amanda-design-phase.md` | Amanda (Muse) | Systems design (08:00–10:35 MDT) |
-| `hack-frontier-agent.md` | hack-frontier (crew de Lola) | Ejecución (11:00–19:00 MDT) — el agente lo completa |
+| `amanda-design-phase.md` | Amanda (Muse) | Systems design (08:00–10:40 MDT) |
+| `hack-frontier-agent.md` | hack-frontier (Lola's crew) | Execution (11:00–19:00 MDT) — the agent completes it |

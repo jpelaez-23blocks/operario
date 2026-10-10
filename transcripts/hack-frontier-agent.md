@@ -1,32 +1,32 @@
-# Transcript — hack-frontier agent · Ejecución
+# Transcript — hack-frontier agent · Execution
 
-**Agente:** hack-frontier (crew de Lola / AI Maestro)
-**Fase:** Ejecución — sábado 10 oct 2026, 11:00–19:00 MDT
+**Agent:** hack-frontier (Lola's crew / AI Maestro)
+**Phase:** Execution — Saturday Oct 10 2026, 11:00–19:00 MDT
 **Repo:** https://github.com/jpelaez-23blocks/operario
 
-> El agente que ejecuta esta fase completa este transcript al cerrar. Formato: el chat — los mensajes/direcciones recibidas y lo que cada una produjo, con limpieza ligera. No es un resumen: debe verse el ida y vuelta. Sin secretos.
+> The agent running this phase completes this transcript when closing. Format: the chat — received messages/directions and what each one produced, lightly cleaned. Not a summary: the back-and-forth must show. No secrets.
 
-## Resumen
+## Summary
 
-_(completar al cierre)_
+_(complete at close)_
 
-## Línea de tiempo
+## Timeline
 
-_(completar: hitos con hora MDT)_
+_(complete: milestones with MDT time)_
 
-## Decisiones clave y por qué
+## Key decisions and why
 
-_(completar)_
+_(complete)_
 
-## Validado
+## Validated
 
-- [ ] E1–E5 contra `__check` desde `__reset` limpio
-- [ ] Auditoría de hardcoding (cero literales de dominio)
-- [ ] Watchdog: corte de entrada VNC a los ~4:30, parada inmediata en estado terminal
-- [ ] `GET /health` → 200 en la URL pública
-- [ ] URL del entrypoint + token registrados en la plataforma antes de las 19:00 MDT
-- [ ] Incidente 14:30 MDT absorbido sin cambios de código
+- [ ] E1–E5 against `__check` from clean `__reset`
+- [ ] Hardcoding audit (zero domain literals)
+- [ ] Watchdog: VNC input cut at ~4:30, immediate stop on terminal state
+- [ ] `GET /health` → 200 on the public URL
+- [ ] Entrypoint URL + token registered on the platform before 19:00 MDT
+- [ ] 14:30 MDT incident absorbed with no code changes
 
-## Incidentes
+## Incidents
 
-_(completar: qué se rompió, cómo se resolvió)_
+_(complete: what broke, how it was fixed)_
