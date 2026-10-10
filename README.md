@@ -1,0 +1,72 @@
+# Operario
+
+**Operador visual de sistemas sin API** — Frontier AI Builders Hackathon, Reto 1.
+
+Un agente que aprende a operar sistemas de gestión sin API, por pantalla, y ejecuta tareas en lenguaje natural en aplicaciones que nunca ha visto. Solo VNC (1280×800, sin DOM): percibe capturas, actúa con clics y teclado, verifica cada paso y se detiene de forma segura cuando la evidencia no respalda la tarea.
+
+## Monorepo
+
+```
+operario/
+├── docs/                      # Entregables del systems design
+│   ├── resumen-diseno.pdf         # Doc de diseño (1 página)
+│   └── diagrama-arquitectura.pdf  # Diagrama de arquitectura
+├── services/
+│   └── entrypoint/            # FastAPI: el contrato con el evaluador
+│       ├── app.py                 # /health, POST /tasks, GET /tasks/{id}
+│       └── requirements.txt
+├── packages/
+│   ├── vnc_driver/            # Cliente RFB 3.008 sobre WSS (validado con PoC)
+│   ├── agent_loop/            # percibir → interpretar → planear → actuar → verificar
+│   ├── model_gateway/         # OpenRouter (2 niveles) + Jev Judgment Layer
+│   └── summary_composer/      # Resumen determinista + scrubber de secretos
+└── infra/
+    └── Dockerfile             # Despliegue: HTTPS pública, egreso a OpenRouter y VNC
+```
+
+## Arquitectura
+
+Ver `docs/` — el resumen de diseño y el diagrama de arquitectura (entregables del systems design).
+
+Componentes (nombres en inglés, descripciones en español):
+
+1. **Entrypoint** — FastAPI. Autentica con Bearer, valida, encola; responde `{"task_id"}` en <2 s; el evaluador sondea `GET /tasks/{id}` cada 5 s.
+2. **Agent Loop** — una sola acción por captura; verifica la poscondición visual antes de continuar.
+3. **Model Gateway** — OpenRouter en dos niveles (visión económica + juicio fuerte), JSON estricto.
+4. **VNC Driver** — RFB 3.008 sobre el websocket `/websockify`, auth DES, ZRLE; clics ≥120 ms.
+5. **Summary Composer** — determinista: línea `respuesta:` exacta, claves de razón en fallos, cero secretos.
+6. **Jev Judgment Layer** (servicio de apoyo) — `Choice` enruta la tarea al entrar, `Noul` resuelve ambigüedad antes de escribir (caso E5), `Score` verifica la pantalla posterior. Solo en compuertas de decisión, vía OpenRouter Decisions API.
+
+Decisión estructural: la URL del escritorio es un parámetro de cada tarea, nunca una constante. Nada se memoriza: ni coordenadas, ni etiquetas, ni rutas.
+
+## Contrato
+
+```
+GET  /health            → 200 cuando está listo (Bearer)
+POST /tasks             → {"tarea": "...", "escritorio": {"url": "wss://.../websockify", "password": "..."}}
+                          responde {"task_id": "..."} en <2 s, trabaja en segundo plano (Bearer)
+GET  /tasks/{task_id}   → {"estado": "en_curso|terminada|fallida", "resumen": "..."} (Bearer)
+```
+
+Cada tarea tiene 5 minutos en un escritorio limpio. El watchdog corta la entrada VNC a los ~4:30 y de inmediato al declarar estado terminal.
+
+## Desarrollo
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -r services/entrypoint/requirements.txt
+# Variables de entorno (nunca en el repo):
+#   OPENROUTER_API_KEY — VLM + Jev vía OpenRouter
+#   TEAM_TOKEN         — Bearer del entrypoint
+uvicorn services.entrypoint.app:app --host 0.0.0.0 --port 8000
+```
+
+## Estado
+
+- [x] Systems design (doc + diagrama) — entregado
+- [x] VNC driver — PoC validado contra escritorio real (handshake, auth, screenshot, clic verificado)
+- [ ] Entrypoint FastAPI + watchdog
+- [ ] Agent loop end-to-end (E1)
+- [ ] Summary composer + secret scrubber
+- [ ] E2–E5 contra `__check`
+- [ ] Despliegue público
