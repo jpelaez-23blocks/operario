@@ -43,6 +43,16 @@ Componentes (nombres en inglés, descripciones en español):
 
 Decisión estructural: la URL del escritorio es un parámetro de cada tarea, nunca una constante. Nada se memoriza: ni coordenadas, ni etiquetas, ni rutas.
 
+## Evals — medimos a los agentes, no solo a las tareas
+
+El diferenciador: un sistema de evals que mide cómo los agentes siguen direcciones y qué tan confiable es cada capacidad. Medir → corregir → re-evaluar.
+
+1. **Matriz sintética** (`evals/synthetic_matrix.py`) — genera escenarios sintéticos en las 5 capacidades (create, update, count, export, refuse) con resultados autoverificables (read-back, homónimos plantados, conteos construidos). Corre desde `__reset` limpio contra el entrypoint desplegado. Reporta pass rate por capacidad.
+2. **Eval de direcciones** (`evals/direction_eval.py`) — extrae cada par (dirección → respuesta) de los transcripts y lo califica con un juicio Jev Score 0–2. Los misses alimentan el loop de mejora: se corrigen y se re-evalúa.
+3. **`__check`** — los 5 ejemplos canónicos del organizador.
+
+Ver `evals/README.md`. Reportes en `evals/reports/`.
+
 ## Contrato
 
 ```
