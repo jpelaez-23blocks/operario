@@ -8,9 +8,10 @@ Un agente que aprende a operar sistemas de gestión sin API, por pantalla, y eje
 
 ```
 operario/
-├── docs/                      # Entregables del systems design
-│   ├── resumen-diseno.pdf         # Doc de diseño (1 página)
-│   └── diagrama-arquitectura.pdf  # Diagrama de arquitectura
+├── documents/                 # Todos los documentos del diseño
+│   ├── resumen-diseno.pdf         # Doc de diseño (1 página) — entregable
+│   ├── diagrama-arquitectura.pdf  # Diagrama de arquitectura — entregable
+│   └── operario-solution-document.pdf  # Documento completo de solución
 ├── services/
 │   └── entrypoint/            # FastAPI: el contrato con el evaluador
 │       ├── app.py                 # /health, POST /tasks, GET /tasks/{id}
@@ -26,7 +27,7 @@ operario/
 
 ## Arquitectura
 
-Ver `docs/` — el resumen de diseño y el diagrama de arquitectura (entregables del systems design).
+Ver `documents/` — el resumen de diseño, el diagrama de arquitectura y el documento completo de solución.
 
 Componentes (nombres en inglés, descripciones en español):
 
