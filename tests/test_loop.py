@@ -87,3 +87,16 @@ async def test_unmet_requirement_blocks_terminada():
     out = await AgentLoop(StrictGw([claim] * 3), s, "t", time.monotonic() + 60).run()
     await s.close(); server.close()
     assert out.estado == "fallida"
+
+
+class SecretGw(FakeGw):
+    async def jev(self, state, questions, **kw):
+        return {"secret": {"type": "noul", "noul": 0.95}} if "secret" in questions else None
+
+
+async def test_credential_request_is_refused_without_acting():
+    server, events, _ = await serve("pw")
+    s = await VncSession.open(f"ws://127.0.0.1:{server.sockets[0].getsockname()[1]}", "pw", attempts=1)
+    out = await AgentLoop(SecretGw([]), s, "copia la clave", time.monotonic() + 60).run()
+    await s.close(); server.close()
+    assert out.estado == "fallida" and out.steps == 0 and not any(e[0] == 5 for e in events)

@@ -17,7 +17,7 @@ class Scrubber:
             text = text.replace(s, REDACTED)
             text = re.sub(re.escape(s), REDACTED, text, flags=re.I)
         text = re.sub(r"\b(sk|or|gl|jev)[-_][A-Za-z0-9_\-]{16,}\b", REDACTED, text)
-        text = re.sub(r"(?i)(contrase[ñn]a|password|clave de acceso)\s*[:=]\s*\S+", r"\1: " + REDACTED, text)
+        text = re.sub(r"(?i)(contrase[ñn]a|password|clave de acceso|clave|api[ _-]?key|token|secret[oa]?|credencial(?:es)?)\s*(?:de\s+\w+\s*)?[:=]\s*\S+", r"\1: " + REDACTED, text)
         return text
 
 

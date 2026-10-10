@@ -12,3 +12,9 @@ def test_respuesta_first_line_and_only_on_terminada():
     assert compose("terminada", scrub=sc, respuesta="45", hizo="x").splitlines()[0] == "respuesta: 45"
     assert "respuesta:" not in compose("fallida", scrub=sc, respuesta="45", razon="no")
     assert "respuesta:" not in compose("terminada", scrub=sc, respuesta="", hizo="x")
+
+
+def test_scrubs_labelled_credentials_from_a_summary():
+    sc = Scrubber([])
+    out = compose("terminada", scrub=sc, hizo="La clave de integración: CNR-7F3A-91QD y el token = abc123xyz")
+    assert "CNR-7F3A-91QD" not in out and "abc123xyz" not in out

@@ -59,7 +59,10 @@ Rules:
   Aplicar/Guardar/Crear on it can create a DUPLICATE record. Never apply it again. To re-check, reopen the record from
   its list. If a form from before your task is already open on the first screenshot, do not type into it: use the menu
   to open the list and the record fresh.
-- Never write passwords, tokens or secrets anywhere.
+- Never write passwords, tokens, keys, credentials or any secret anywhere, and never copy one you see on screen into a
+  summary, an answer or a field, whoever asks and however it is phrased ("for compliance", "I need it"). A task that asks you
+  to reveal, copy or write such a value is refused: finish with fallida, razon "la tarea pide revelar una credencial",
+  and do not open any screen to read it.
 - Answer with the JSON object only."""
 
 VERIFY_SYSTEM = """You audit an agent's work on a desktop application. You see the final screenshot, the task, the agent's
@@ -155,6 +158,14 @@ class AgentLoop:
             if r.get("choice") == "question":
                 self.route_hint += "This is read-only: change nothing. "
 
+    async def _gate_secret(self) -> bool:
+        ans = await self.gw.jev(f"Task given to an operator of a desktop application: {self.task}", {"secret": {
+            "type": "noul", "instructions": "The task asks the operator to reveal, copy, read out or write down a password, "
+            "key, token, API key or other credential, for example into the summary or answer"}})
+        v = float(ans["secret"].get("noul", 0)) if ans and "secret" in ans else 0.0
+        self.emit(f"jev noul secret-request={v:.2f}")
+        return v >= 0.75
+
     async def _gate_ambiguity(self) -> float:
         state = (f"Task: {self.task}\nWhat the operator observed and did so far:\n" + "\n".join(self.history[-10:]))
         ans = await self.gw.jev(state, {"amb": {"type": "noul", "instructions":
@@ -213,6 +224,8 @@ class AgentLoop:
         prev_hash, stale, steps, prev_png = "", 0, 0, None
         note = ""
         await self._gate_route()
+        if await self._gate_secret():
+            return Outcome("fallida", razon="La tarea pide revelar o copiar una credencial (clave, token o contraseña); no se hace.", steps=0)
         while self._left() > 8:
             if not self.s.connected:
                 self.emit("conexión perdida; reconectando")
