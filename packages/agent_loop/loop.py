@@ -91,7 +91,7 @@ class AgentLoop:
         imgs = [shot]
         err = ""
         for attempt in range(3):
-            raw = await self.gw.chat(tier if attempt < 2 else "strong", SYSTEM, text + err, imgs, timeout=min(45, max(8, self._left() - 5)))
+            raw = await self.gw.chat(tier if attempt < 2 else "strong", SYSTEM, text + err, imgs, timeout=min(20 if tier == "fast" else 40, max(8, self._left() - 5)))
             try:
                 return Action.model_validate(parse_json(raw))
             except (ValueError, ValidationError) as e:
