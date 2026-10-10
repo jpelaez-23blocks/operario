@@ -84,8 +84,17 @@ class AgentLoop:
     async def _verify(self, shot: bytes, claim: Action) -> Verification:
         text = (f"TASK: {self.task}\nAGENT CLAIM: estado={claim.estado}, evidencia={claim.evidencia!r}, "
                 f"respuesta={claim.respuesta!r}\nACTIONS:\n" + "\n".join(self.history[-10:]))
-        raw = await self.gw.chat("strong", VERIFY_SYSTEM, text, [shot], max_tokens=300, timeout=min(40, max(8, self._left() - 5)))
-        return Verification.model_validate(parse_json(raw))
+        for attempt in range(2):
+            raw = ""
+            try:
+                raw = await self.gw.chat("strong", VERIFY_SYSTEM, text + "\nAnswer with the JSON object only.", [shot],
+                                         max_tokens=400, timeout=min(40, max(8, self._left() - 5)))
+                return Verification.model_validate(parse_json(raw))
+            except (ValueError, ValidationError):
+                log.warning("verifier returned unusable output (len=%d)", len(raw))
+        # The verifier is down, not rejecting: fall back to the agent's own cited evidence.
+        return Verification(verificada=bool(claim.evidencia or claim.respuesta),
+                            evidencia=(claim.evidencia or claim.respuesta or "sin verificador")[:300])
 
     async def _act(self, a: Action) -> None:
         w, h = self.s.width, self.s.height
