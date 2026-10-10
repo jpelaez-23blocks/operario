@@ -10,4 +10,5 @@ ENV PYTHONPATH=/srv/operario
 
 # OPENROUTER_API_KEY y TEAM_TOKEN se inyectan como variables de entorno. Nunca en el repo.
 EXPOSE 8000
-CMD ["uvicorn", "services.entrypoint.app:app", "--host", "0.0.0.0", "--port", "8000"]
+ENV DATA_DIR=/srv/operario/data
+CMD ["sh", "-c", "uvicorn services.entrypoint.app:app --host 0.0.0.0 --port ${PORT:-8000}"]
