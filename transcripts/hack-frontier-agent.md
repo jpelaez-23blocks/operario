@@ -4,7 +4,7 @@
 **Fase:** Ejecución — sábado 10 oct 2026, 11:00–19:00 MDT
 **Repo:** https://github.com/jpelaez-23blocks/operario
 
-> El agente que ejecuta esta fase completa este transcript al cerrar: decisiones, acciones, validaciones y resultado. Sin secretos.
+> El agente que ejecuta esta fase completa este transcript al cerrar. Formato: el chat — los mensajes/direcciones recibidas y lo que cada una produjo, con limpieza ligera. No es un resumen: debe verse el ida y vuelta. Sin secretos.
 
 ## Resumen
 
