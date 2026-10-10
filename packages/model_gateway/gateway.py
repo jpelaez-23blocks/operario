@@ -49,6 +49,8 @@ class Gateway:
         self.key = os.environ.get("OPENROUTER_API_KEY", "")
         self.fast = os.environ.get("MODEL_FAST", "")
         self.strong = os.environ.get("MODEL_STRONG", "")
+        self.effort_fast = os.environ.get("REASONING_FAST", "low")
+        self.effort_strong = os.environ.get("REASONING_STRONG", "low")
         self.jev_model = os.environ.get("JEV_MODEL", "typesafe/jev-1.13")
         self.jev_enabled = os.environ.get("JEV_ENABLED", "1") == "1"
         cap = float(os.environ.get("BUDGET_USD", "40"))
@@ -74,7 +76,10 @@ class Gateway:
             content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}})
         body = {
             "model": model,
-            "messages": [{"role": "system", "content": system}, {"role": "user", "content": content}],
+            "messages": [
+                {"role": "system", "content": [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]},
+                {"role": "user", "content": content}],
+            "reasoning": {"effort": self.effort_strong if tier == "strong" else self.effort_fast},
             "max_tokens": max_tokens,
             "temperature": 0,
             "response_format": {"type": "json_object"},

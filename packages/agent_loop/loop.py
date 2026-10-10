@@ -53,8 +53,11 @@ Rules:
 - Answer with the JSON object only."""
 
 VERIFY_SYSTEM = """You audit an agent's work on a desktop application. You see the final screenshot, the task and the
-agent's claim. Decide whether the screen itself proves the task is complete. Be strict: if the proof is not visible
-(for example a form still open, an error shown, an unsaved field), verificada is false.
+agent's claim. Decide whether the screen itself proves the task is complete. For a change or export, be strict: if
+the proof is not visible (a form still open, an error shown, an unsaved field), verificada is false.
+For a read-only question, the answer is built from several earlier screens and the agent's notes: accept it
+(verificada true) unless the final screen or the notes contradict it. Do not reject only because the final screen
+shows one page of a longer list.
 Answer JSON only: {"verificada": bool, "evidencia": str}"""
 
 
@@ -107,7 +110,7 @@ class AgentLoop:
 
     async def _verify(self, shot: bytes, claim: Action) -> Verification:
         text = (f"TASK: {self.task}\nAGENT CLAIM: estado={claim.estado}, evidencia={claim.evidencia!r}, "
-                f"respuesta={claim.respuesta!r}\nACTIONS:\n" + "\n".join(self.history[-10:]))
+                f"respuesta={claim.respuesta!r}\nAGENT NOTES: {self.notes or '(none)'}\nACTIONS:\n" + "\n".join(self.history[-10:]))
         for attempt in range(2):
             raw = ""
             try:
