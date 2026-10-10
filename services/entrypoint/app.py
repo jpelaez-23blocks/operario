@@ -65,6 +65,9 @@ gw = Gateway()
 tasks: dict[str, dict] = {}
 _sem = asyncio.Semaphore(int(os.environ.get("MAX_CONCURRENT", "6")))
 _bg: set = set()
+# Desktop address and password per task, in memory only: never written to the registry file, never logged,
+# never in a resumen. Served only to the team token so a run's tasks can be replayed on the same desktop.
+_desktops: dict[str, dict] = {}
 _state_file = DATA_DIR / "tasks.json"
 
 
@@ -119,7 +122,9 @@ async def create_task(payload: dict):
     if not isinstance(tarea, str) or not tarea.strip() or not _valid_desktop(desk):
         raise HTTPException(status_code=422, detail="se requiere tarea y escritorio {url, password}")
     task_id = uuid.uuid4().hex
-    tasks[task_id] = {"estado": "en_curso", "resumen": "", "tarea": tarea[:500], "inicio": time.time(), "pasos": []}
+    tasks[task_id] = {"estado": "en_curso", "resumen": "", "tarea": tarea[:500], "inicio": time.time(), "pasos": [],
+                      "escritorio_url": str(desk["url"])[:300]}
+    _desktops[task_id] = {"url": str(desk["url"]), "password": desk.get("password", "")}
     persist()
     t = asyncio.create_task(_run(task_id, tarea.strip(), desk["url"], desk.get("password", "")))
     _bg.add(t)
@@ -132,8 +137,17 @@ def list_tasks(limit: int = 20):
     """Recent tasks for operators: no desktop URL or password is ever stored here."""
     rows = sorted(tasks.items(), key=lambda kv: kv[1].get("inicio", 0), reverse=True)[:max(1, min(limit, 100))]
     return [{"task_id": k, "estado": v["estado"], "tarea": v.get("tarea", ""), "resumen": v["resumen"],
+             "escritorio_url": v.get("escritorio_url", ""),
              "segundos": round(v.get("fin", time.time()) - v.get("inicio", time.time())),
              "pasos": v.get("pasos", [])[-300:]} for k, v in rows]
+
+
+@app.get("/tasks/{task_id}/desktop", dependencies=[Depends(bearer)])
+def get_task_desktop(task_id: str):
+    d = _desktops.get(task_id)
+    if d is None:
+        raise HTTPException(status_code=404, detail="unknown task")
+    return d
 
 
 @app.get("/tasks/{task_id}", dependencies=[Depends(bearer)])

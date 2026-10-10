@@ -40,3 +40,17 @@ async def test_path_spellings_and_open_liveness():
             assert r.status_code == 200 and r.json()["model_ready"] in (True, False), path
             assert (await c.get(path)).status_code == 200
         assert (await c.get("/tasks/", headers=H)).status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_desktop_served_only_to_token_and_kept_out_of_listing_and_file():
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=appmod.app), base_url="http://t") as c:
+        r = await c.post("/tasks", headers=H, json={"tarea": "x", "escritorio": {"url": "ws://127.0.0.1:1/w", "password": "pw-secret-2"}})
+        tid = r.json()["task_id"]
+        assert (await c.get(f"/tasks/{tid}/desktop")).status_code == 401
+        d = (await c.get(f"/tasks/{tid}/desktop", headers=H)).json()
+        assert d == {"url": "ws://127.0.0.1:1/w", "password": "pw-secret-2"}
+        listing = (await c.get("/tasks", headers=H)).text
+        assert "pw-secret-2" not in listing and "ws://127.0.0.1:1/w" in listing
+        assert "pw-secret-2" not in appmod._state_file.read_text()
+        await asyncio.sleep(1)
