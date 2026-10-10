@@ -67,7 +67,9 @@ Rules:
 - If the task describes a person or record (name, sex, age, document number, doctor, room) and the record you found
   contradicts any part of that description, or there are two records that fit, do NOT change anything: finish with
   fallida and put the identifying values of each candidate in "claves".
-- If the task asks for two values and you can read only one, finish with fallida and no "respuesta".
+- If the task asks for two values and the screen gives you both, answer both even when one is "(sin configurar)", "vacío",
+  "ninguno", "N/A" or 0: that IS the value, write it as shown (for example "respuesta: lab-sync; (sin configurar)").
+  Finish with fallida and no "respuesta" only when a value is truly not on any screen of the app.
 - A form that already showed a confirmation ("Cambios aplicados" or similar) for your change stays open and a second
   Aplicar/Guardar/Crear on it can create a DUPLICATE record. Never apply it again. To re-check, reopen the record from
   its list. If a form from before your task is already open on the first screenshot, do not type into it: use the menu
