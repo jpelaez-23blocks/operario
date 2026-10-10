@@ -12,7 +12,7 @@ ACTIONS = ("click", "double_click", "type", "key", "scroll", "wait", "done")
 class Action(BaseModel):
     model_config = {"extra": "forbid"}
 
-    thought: str = Field(max_length=600)
+    thought: str = Field(max_length=2000)
     action: Literal["click", "double_click", "type", "key", "scroll", "wait", "done"]
     x: Optional[int] = None
     y: Optional[int] = None
@@ -26,6 +26,11 @@ class Action(BaseModel):
     razon: Optional[str] = Field(default=None, max_length=600)
     claves: Optional[list[str]] = None
     evidencia: Optional[str] = Field(default=None, max_length=400)
+
+    @field_validator("thought")
+    @classmethod
+    def _short(cls, v):
+        return v[:300]
 
     @field_validator("x", "y")
     @classmethod

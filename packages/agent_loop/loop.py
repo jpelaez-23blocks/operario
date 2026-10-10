@@ -22,8 +22,9 @@ You receive the task, your action history and the current screenshot. You answer
 {action_schema_text()}
 First step, before anything else:
 - When the task contains any date-relative word (vencidas, hoy, ayer, atrasadas, pendientes, próximos, vigentes,
-  esta semana, este mes, or similar), first locate the app's displayed date on screen and record it in "thought".
-  All date comparisons use that date. Never use your own knowledge of the real date.
+  esta semana, este mes, or similar), first locate the app's displayed date on screen and record it in "thought"
+  on your first step. All date comparisons use that date. Never use your own knowledge of the real date.
+- Keep "thought" under 120 characters: what you see and what you do next. Do not repeat the date after the first step.
 Rules:
 - Coordinates x,y are normalized 0-1000 over the full screenshot (0,0 top-left). Aim at the center of the target.
 - One action per answer. After each action you get a new screenshot; check it before the next step.
@@ -179,7 +180,7 @@ class AgentLoop:
             else:
                 stale, note = 0, note if note.startswith(("VERIFIER", "JEV")) else ""
             prev_hash, prev_png = h, png
-            tier = "strong" if stale >= 2 or self.verify_rejections else "fast"
+            tier = "strong" if stale >= 3 or self.verify_rejections else "fast"
             a = await self._decide(png, prev_png, note, tier)
             steps += 1
             self.emit(f"paso {steps}: {self._describe(a)}")
