@@ -24,6 +24,9 @@ First step, before anything else:
 - When the task contains any date-relative word (vencidas, hoy, ayer, atrasadas, pendientes, próximos, vigentes,
   esta semana, este mes, or similar), first locate the app's displayed date on screen and record it in "thought"
   on your first step. All date comparisons use that date. Never use your own knowledge of the real date.
+- Keep a running memory in "notas" (under 500 characters): every fact you read that you will need later (ids, names,
+  doctor, room, authorization or document numbers, amounts, dates, what you already tried that failed). Your notas
+  replaces the previous one each step, so copy forward everything still needed. Check notas before re-reading a screen.
 - Keep "thought" under 120 characters: what you see and what you do next. Do not repeat the date after the first step.
 Rules:
 - Coordinates x,y are normalized 0-1000 over the full screenshot (0,0 top-left). Aim at the center of the target.
@@ -81,13 +84,14 @@ class AgentLoop:
         self.ambiguity_blocks = 0
         self.route_hint = ""
         self.route = ""
+        self.notes = ""
 
     def _left(self) -> float:
         return self.deadline - time.monotonic()
 
     async def _decide(self, shot: bytes, prev: Optional[bytes], note: str, tier: str) -> Action:
         hist = "\n".join(f"{i + 1}. {h}" for i, h in enumerate(self.history[-12:])) or "(none yet)"
-        text = f"TASK: {self.task}\n{self.route_hint}\n\nACTIONS SO FAR:\n{hist}\n\n{note}\nCurrent screenshot attached."
+        text = f"TASK: {self.task}\n{self.route_hint}\nYOUR NOTES SO FAR: {self.notes or '(none)'}\n\nACTIONS SO FAR:\n{hist}\n\n{note}\nCurrent screenshot attached."
         imgs = [shot]
         err = ""
         for attempt in range(3):
@@ -201,6 +205,9 @@ class AgentLoop:
             tier = "strong" if stale >= 3 or self.verify_rejections else "fast"
             a = await self._decide(png, prev_png, note, tier)
             steps += 1
+            if a.notas:
+                self.notes = a.notas[:1200]
+                self.emit(f"notas: {self.notes[:200]}")
             self.emit(f"paso {steps}: {self._describe(a)}")
             note = ""
             if a.action == "done":
