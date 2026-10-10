@@ -99,6 +99,7 @@ class Verification(BaseModel):
     model_config = {"extra": "forbid"}
     verificada: bool
     evidencia: str = Field(max_length=400)
+    contradiccion: bool = False  # true only if the screen or the notes CONTRADICT the claim
     requisitos: list[Requisito] = Field(default_factory=list, max_length=12)
 
     @property

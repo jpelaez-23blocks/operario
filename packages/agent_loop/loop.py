@@ -24,10 +24,12 @@ First step, before anything else:
 - When the task contains any date-relative word (vencidas, hoy, ayer, atrasadas, pendientes, próximos, vigentes,
   esta semana, este mes, or similar), first locate the app's displayed date on screen and record it in "thought"
   on your first step. All date comparisons use that date. Never use your own knowledge of the real date.
-- Keep a running memory in "notas" (under 500 characters): every fact you read that you will need later (ids, names,
-  doctor, room, authorization or document numbers, amounts, dates, what you already tried that failed). Your notas
-  replaces the previous one, so copy forward everything still needed. Include "notas" ONLY on a step where you learned
-  a new fact or something failed; otherwise leave it out and your previous notas stay. Check notas before re-reading a screen.
+- Keep a running memory in "notas": write only the NEW facts you learned or checked on this step (ids, names, doctor,
+  room, authorization or document numbers, amounts, dates, what failed), each short. The system appends them and keeps
+  all earlier ones, so never repeat old facts. Leave "notas" out when you learned nothing new. Check the facts before
+  re-reading a screen.
+- If TIME LEFT is under 60 s, stop exploring: finish now with done and the best-supported estado (terminada only when the
+  change or answer is already confirmed on screen; otherwise fallida naming what is missing).
 - Keep "thought" under 120 characters: what you see and what you do next. Do not repeat the date after the first step.
 Rules:
 - Coordinates x,y are normalized 0-1000 over the full screenshot (0,0 top-left). Aim at the center of the target.
@@ -79,7 +81,9 @@ claim, its notes and its recent actions. Work in this order:
 - For a change, proof of saving is a confirmation message or the saved record showing the new value.
 - For a read-only question, accept the answer when each asked value is supported by the screen or the notes.
 Set verificada true only if every requirement is cumplido. Answer JSON only:
-{"requisitos": [{"requisito": str, "cumplido": bool, "evidencia": str}], "verificada": bool, "evidencia": str}"""
+{"requisitos": [{"requisito": str, "cumplido": bool, "evidencia": str}], "verificada": bool, "contradiccion": bool, "evidencia": str}
+contradiccion is true ONLY if the final screen or the notes actively contradict the claim (a wrong value, an error, an
+unsaved form, a different record). Missing evidence is NOT a contradiction: set it false then.""" 
 
 
 @dataclass
@@ -102,6 +106,17 @@ def _hash(png: bytes) -> str:
 
 
 class AgentLoop:
+    @property
+    def notes(self) -> str:
+        return " | ".join(self.facts)
+
+    def _add_fact(self, text: str) -> None:
+        text = text.strip()
+        if text and text not in self.notes:
+            self.facts.append(text[:300])
+            while len(self.notes) > 3000 and len(self.facts) > 1:
+                self.facts.pop(0)  # drop the oldest only when the memory is full
+
     def __init__(self, gw: Gateway, session: VncSession, task: str, deadline: float,
                  emit: Callable[[str], None] = lambda s: None):
         self.gw, self.s, self.task, self.deadline, self.emit = gw, session, task, deadline, emit
@@ -110,7 +125,8 @@ class AgentLoop:
         self.ambiguity_blocks = 0
         self.route_hint = ""
         self.route = ""
-        self.notes = ""
+        self.facts: list[str] = []
+        self.rejected_at = -99
         self.next_wait = 1.0
 
     def _left(self) -> float:
@@ -118,7 +134,7 @@ class AgentLoop:
 
     async def _decide(self, shot: bytes, prev: Optional[bytes], note: str, tier: str) -> Action:
         hist = "\n".join(f"{i + 1}. {h}" for i, h in enumerate(self.history[-12:])) or "(none yet)"
-        text = f"TASK: {self.task}\n{self.route_hint}\nYOUR NOTES SO FAR: {self.notes or '(none)'}\n\nACTIONS SO FAR:\n{hist}\n\n{note}\nCurrent screenshot attached."
+        text = f"TASK: {self.task}\n{self.route_hint}\nTIME LEFT: {max(0, int(self._left()))} s\nYOUR NOTES SO FAR (all earlier facts): {self.notes or '(none)'}\n\nACTIONS SO FAR:\n{hist}\n\n{note}\nCurrent screenshot attached."
         imgs = [shot]
         err = ""
         for attempt in range(3):
@@ -185,9 +201,12 @@ class AgentLoop:
 
     async def _act(self, a: Action) -> None:
         await self._do(a)
+        prev = a
         for c in a.then or []:
-            await asyncio.sleep(0.35)  # the field must take focus before the next input
+            # the field must take focus; after typing, give the page time to commit before a click (filter buttons)
+            await asyncio.sleep(0.8 if prev.action == "type" and c.action == "click" else 0.35)
             await self._do(c)
+            prev = c
 
     async def _do(self, a) -> None:
         w, h = self.s.width, self.s.height
@@ -243,23 +262,32 @@ class AgentLoop:
             a = await self._decide(png, prev_png, note, tier)
             steps += 1
             if a.notas:
-                self.notes = a.notas[:1200]
-                self.emit(f"notas: {self.notes[:200]}")
+                self._add_fact(a.notas)
+                self.emit(f"notas+: {a.notas[:200]}")
             self.emit(f"paso {steps}: {self._describe(a)}")
             note = ""
             if a.action == "done":
                 if a.estado == "terminada":
                     v = await self._verify(png, a)
                     self.emit(f"verificación: {v.ok} — {v.evidencia[:100]}" + (f" | faltan: {'; '.join(v.faltantes())[:200]}" if v.faltantes() else ""))
-                    if not v.ok and self.verify_rejections < 2 and self._left() > 40:
-                        self.verify_rejections += 1
-                        self.history.append("claimed done, verifier rejected")
-                        note = ("VERIFIER: requirements not met: " + ("; ".join(v.faltantes()) or v.evidencia)[:400] + ". Check each on screen, record the evidence in notas, then finish; if it cannot be met, finish with fallida naming the keys.")
-                        continue
                     if not v.ok:
-                        return Outcome("fallida", razon="no se pudo verificar en pantalla que la tarea quedara completa",
-                                       steps=steps)
-                    if self.verify_rejections < 2 and self._left() > 40 and \
+                        # A rejection that is only "no evidence found" (no contradiction) must not trigger a long
+                        # re-derivation: allow a short look-up once, then accept the agent's evidenced claim.
+                        limit_hit = self.verify_rejections >= 1 and steps - self.rejected_at >= 4
+                        accept = (not v.contradiccion) and (self._left() < 90 or self.verify_rejections >= 2 or limit_hit) \
+                            and bool(a.evidencia or a.respuesta)
+                        if accept:
+                            self.emit("verificador sin contradicción y sin tiempo para re-explorar; se acepta el reclamo con evidencia")
+                        elif self.verify_rejections < 2 and self._left() > 90:
+                            self.verify_rejections += 1
+                            self.rejected_at = steps
+                            self.history.append("claimed done, verifier rejected")
+                            note = ("VERIFIER: requirements not met: " + ("; ".join(v.faltantes()) or v.evidencia)[:400] + ". Use at most 3 steps: check each on screen or in your notes, record the evidence in notas, then finish; if it cannot be met, finish with fallida naming the keys.")
+                            continue
+                        else:
+                            return Outcome("fallida", razon="no se pudo verificar en pantalla que la tarea quedara completa",
+                                           steps=steps)
+                    if self.verify_rejections < 2 and self._left() > 90 and \
                             await self._gate_proof(a, a.evidencia or v.evidencia) < 0.3:
                         self.verify_rejections += 1
                         self.history.append("claimed done, Jev judged the evidence insufficient")
