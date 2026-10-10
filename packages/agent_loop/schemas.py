@@ -44,6 +44,7 @@ class Action(BaseModel):
     replace: bool = False          # type: select all first, then type
     keys: Optional[str] = None     # key: "enter", "ctrl+a", ...
     dy: Optional[int] = None       # scroll notches, + down / - up
+    notas: Optional[str] = Field(default=None, max_length=1200)
     then: Optional[list[Chained]] = Field(default=None, max_length=MAX_CHAIN)
     # done
     estado: Optional[Literal["terminada", "fallida"]] = None
@@ -97,6 +98,7 @@ def action_schema_text() -> str:
     return (
         '{"thought": str, "action": "click|double_click|type|key|scroll|wait|done", '
         '"x": 0-1000, "y": 0-1000, "text": str, "replace": bool, "keys": str, "dy": int, '
+        '"notas": str, '
         '"then": [{"action": "click|type|key", "x", "y", "text", "replace", "keys"}] (max 2), '
         '"estado": "terminada|fallida", "respuesta": str, "razon": str, "claves": [str], "evidencia": str}'
     )
