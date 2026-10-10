@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import logging
+import re
 import time
 from dataclasses import dataclass, field
 from typing import Callable, Optional
@@ -61,6 +62,10 @@ Rules:
   Aplicar/Guardar/Crear on it can create a DUPLICATE record. Never apply it again. To re-check, reopen the record from
   its list. If a form from before your task is already open on the first screenshot, do not type into it: use the menu
   to open the list and the record fresh.
+- Never decide which of two records is the current one or the duplicate by date alone: open and compare the content of
+  both first. If you write "probable", "posible", "supongo" or "parece" in your notas about which record or value is
+  the right one, do not save anything until a LATER note says "confirmado:" with the evidence; if you cannot confirm it,
+  finish with fallida and the identifying values, without writing.
 - Never write passwords, tokens, keys, credentials or any secret anywhere, and never copy one you see on screen into a
   summary, an answer or a field, whoever asks and however it is phrased ("for compliance", "I need it"). A task that asks you
   to reveal, copy or write such a value is refused: finish with fallida, razon "la tarea pide revelar una credencial",
@@ -105,7 +110,18 @@ def _hash(png: bytes) -> str:
     return hashlib.md5(png).hexdigest()
 
 
+PREMISE_WORDS = re.compile(r"probabl|posible|supongo|supuest|parece|presumibl|quiz[aá]|assum|guess|likely|maybe", re.I)
+CONFIRM_WORDS = re.compile(r"confirmad|confirmed|verificad|descartad|ruled out", re.I)
+
+
 class AgentLoop:
+    def premise_unconfirmed(self) -> bool:
+        """True when the latest note about an uncertain premise has no later confirmation."""
+        last_doubt = max((i for i, f in enumerate(self.facts) if PREMISE_WORDS.search(f)), default=-1)
+        if last_doubt < 0:
+            return False
+        return not any(CONFIRM_WORDS.search(f) for f in self.facts[last_doubt + 1:])
+
     @property
     def notes(self) -> str:
         return " | ".join(self.facts)
@@ -127,6 +143,7 @@ class AgentLoop:
         self.route = ""
         self.facts: list[str] = []
         self.rejected_at = -99
+        self.premise_blocks = 0
         self.next_wait = 1.0
 
     def _left(self) -> float:
@@ -297,7 +314,15 @@ class AgentLoop:
                                    respuesta=a.respuesta if self.route in ("", "question") else None,
                                    evidencia=a.evidencia or v.evidencia, steps=steps)
                 return Outcome("fallida", razon=a.razon or "", claves=a.claves or [], steps=steps)
+            saves = a.action == "click" and a.thought and re.search(r"aplic|guard|crea|confirm|anul|cancel|inactiv|registr", a.thought, re.I)
             writes = a.action == "type" or any(c.action == "type" for c in a.then or [])
+            if (writes or saves) and self.premise_blocks < 2 and self.premise_unconfirmed():
+                self.premise_blocks += 1
+                self.history.append("held a write: an unconfirmed premise is in the notes")
+                note = ("PREMISE: your notes still say a record or value is only probable. Before you change anything, open and compare "
+                        "the content of the candidate records and add a note starting with 'confirmado:' and the evidence; "
+                        "if you cannot confirm it, finish with fallida naming the identifying values, without writing.")
+                continue
             if writes and self.ambiguity_blocks < 2 and len(self.history) >= 3 \
                     and await self._gate_ambiguity() >= 0.9:
                 self.ambiguity_blocks += 1

@@ -127,3 +127,28 @@ def test_facts_are_append_only():
     a = AL.__new__(AL); a.facts = []
     a._add_fact("pago R-4205 factura F-2268"); a._add_fact("cita C-1430 Dra Perez"); a._add_fact("cita C-1430 Dra Perez")
     assert a.notes == "pago R-4205 factura F-2268 | cita C-1430 Dra Perez"
+
+
+def test_premise_guard_detects_unconfirmed_guess_until_confirmed():
+    from packages.agent_loop.loop import AgentLoop as AL
+    a = AL.__new__(AL); a.facts = []
+    assert not a.premise_unconfirmed()
+    a._add_fact("P-0081 registro 2025, P-0129 registro 2026")
+    a._add_fact("Vigente probable P-0129 (más reciente)")
+    assert a.premise_unconfirmed()
+    a._add_fact("confirmado: P-0129 tiene citas y facturas; P-0081 vacío")
+    assert not a.premise_unconfirmed()
+
+
+async def test_write_is_held_while_a_premise_is_unconfirmed():
+    server, events, _ = await serve("pw")
+    s = await VncSession.open(f"ws://127.0.0.1:{server.sockets[0].getsockname()[1]}", "pw", attempts=1)
+    script = [{"thought": "Vigente probable el más reciente", "action": "click", "x": 100, "y": 100,
+               "notas": "Vigente probable P-0129 (más reciente)"},
+              {"thought": "guardo el cambio", "action": "type", "text": "x", "replace": True},
+              {"thought": "no puedo confirmarlo", "action": "done", "estado": "fallida", "razon": "no confirmado", "claves": ["P-0081", "P-0129"]}]
+    loop = AgentLoop(FakeGw(script), s, "t", time.monotonic() + 100)
+    out = await loop.run()
+    await s.close(); server.close()
+    typed = [e for e in events if e[0] == 4]
+    assert out.estado == "fallida" and out.claves == ["P-0081", "P-0129"] and not typed
