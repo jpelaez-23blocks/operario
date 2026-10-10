@@ -120,7 +120,8 @@ class AgentLoop:
         note = ""
         while self._left() > 8:
             if not self.s.connected:
-                raise VncError("conexión perdida")
+                self.emit("conexión perdida; reconectando")
+                await self.s.reconnect()
             await self.s.settle()
             png = self.s.screenshot_jpeg()
             h = _hash(png)
@@ -155,4 +156,7 @@ class AgentLoop:
                 await self._act(a)
             except InputFrozen:
                 return Outcome("fallida", razon="tiempo agotado", steps=steps)
+            except (VncError, OSError) as e:
+                self.emit(f"error de entrada ({type(e).__name__}); reconectando")
+                await self.s.reconnect()
         return Outcome("fallida", razon="se agotó el tiempo sin completar la tarea", steps=steps)

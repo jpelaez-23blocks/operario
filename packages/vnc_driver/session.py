@@ -98,6 +98,35 @@ class VncSession:
         self._frozen = False
         self._pump_error: Optional[BaseException] = None
         self._mouse = (0, 0)
+        self._send_lock = asyncio.Lock()
+
+    async def _send(self, data: bytes) -> None:
+        async with self._send_lock:
+            await self._ws.send(data)
+
+    async def reconnect(self) -> None:
+        """Re-open the connection (same desktop). Input stays frozen if it was."""
+        frozen = self._frozen
+        if self._pump:
+            self._pump.cancel()
+        if self._ws is not None:
+            try:
+                await self._ws.close()
+            except Exception:  # noqa: BLE001
+                pass
+        self._pump_error = None
+        self._zdec = zlib.decompressobj()
+        self.updates = 0
+        last = None
+        for i in range(3):
+            try:
+                await asyncio.wait_for(self._connect(), 25)
+                self._frozen = frozen
+                return
+            except Exception as e:  # noqa: BLE001
+                last = e
+                await asyncio.sleep(1.0 * (i + 1))
+        raise VncError(f"no se pudo reconectar: {type(last).__name__}")
 
     # ---- connection -------------------------------------------------------
     @classmethod
@@ -127,7 +156,7 @@ class VncSession:
         ver = await r.read(12)
         if not ver.startswith(b"RFB"):
             raise VncError("el servidor no habla RFB")
-        await self._ws.send(b"RFB 003.008\n")
+        await self._send(b"RFB 003.008\n")
         n = (await r.read(1))[0]
         if n == 0:
             ln = struct.unpack(">I", await r.read(4))[0]
@@ -136,21 +165,21 @@ class VncSession:
         choice = 2 if 2 in types else (1 if 1 in types else 0)
         if not choice:
             raise VncError("sin tipo de seguridad soportado")
-        await self._ws.send(bytes([choice]))
+        await self._send(bytes([choice]))
         if choice == 2:
-            await self._ws.send(vnc_encrypt(self._password, await r.read(16)))
+            await self._send(vnc_encrypt(self._password, await r.read(16)))
         status = struct.unpack(">I", await r.read(4))[0]
         if status != 0:
             raise VncError("autenticación VNC rechazada")
-        await self._ws.send(b"\x01")  # shared
+        await self._send(b"\x01")  # shared
         self.width, self.height = struct.unpack(">HH", await r.read(4))
         await r.read(16)  # server pixel format, ignored: we set our own
         nl = struct.unpack(">I", await r.read(4))[0]
         await r.read(nl)
         self.fb = np.zeros((self.height, self.width, 3), dtype=np.uint8)
-        await self._ws.send(struct.pack(">Bxxx", 0) + PIXEL_FORMAT)  # SetPixelFormat
+        await self._send(struct.pack(">Bxxx", 0) + PIXEL_FORMAT)  # SetPixelFormat
         encs = [ENC_ZRLE, ENC_COPYRECT, ENC_RAW]
-        await self._ws.send(struct.pack(">BxH", 2, len(encs)) + b"".join(struct.pack(">i", e) for e in encs))
+        await self._send(struct.pack(">BxH", 2, len(encs)) + b"".join(struct.pack(">i", e) for e in encs))
         await self._request(incremental=False)
         self._pump = asyncio.create_task(self._pump_loop())
         # wait for the first full frame
@@ -163,7 +192,7 @@ class VncSession:
             await asyncio.sleep(0.05)
 
     async def _request(self, incremental: bool) -> None:
-        await self._ws.send(struct.pack(">BBHHHH", 3, 1 if incremental else 0, 0, 0, self.width, self.height))
+        await self._send(struct.pack(">BBHHHH", 3, 1 if incremental else 0, 0, 0, self.width, self.height))
 
     async def close(self) -> None:
         self._frozen = True
@@ -339,7 +368,7 @@ class VncSession:
             raise InputFrozen("entrada VNC cortada")
         if self._pump_error:
             raise VncError(f"conexión perdida: {type(self._pump_error).__name__}")
-        await self._ws.send(payload)
+        await self._send(payload)
 
     async def _pointer(self, x: int, y: int, mask: int) -> None:
         x = max(0, min(self.width - 1, int(x)))

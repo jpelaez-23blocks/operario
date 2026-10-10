@@ -17,6 +17,9 @@ In progress. Updated at each milestone.
 - 10:49 — Repo cloned. All four env vars (`TEAM_TOKEN`, `OPENROUTER_API_KEY`, `PRACTICE_VNC_URL`, `PRACTICE_VNC_PASSWORD`) unset. Blocker sent to Lola. Lola: Juan sets them now; keep building offline.
 - 10:50 — Lola relays Juan's requirement: judges score the transcript; fill it as I go.
 - 10:52 — `vnc_driver/session.py`: RFB client with Raw, CopyRect, ZRLE, incremental updates, retry, input freeze. Tested against a mock RFB server (ZRLE frame decodes byte-identical; wrong password raises without echoing it). The PoC files with a hardcoded host were removed.
+- 11:04 — Juan delivers the credentials in chat; stored in a mode-600 file outside the repo. Desktop reachable, `__reset` 200, OpenRouter budget $45 confirmed.
+- 11:04 — First E1 run: died on a TLS `bad record MAC` in the OpenRouter HTTP client (Python 3.12.0). Fix: no keep-alive pooling, retry on SSL errors. Added a VNC send lock and reconnect.
+- 11:06 — **E1 passes** from a clean `__reset`: 17 steps, 112 s, all `__check` items true. The agent searched the NIT first to avoid a duplicate, then created the record and verified the saved screen.
 - 10:54 — Entrypoint (registry persisted per transition, watchdog), strict action schema, model gateway (OpenRouter two tiers, Jev at gates, budget ledger), summary composer with secret scrubber, perceive-act-verify loop. Contract test passes.
 
 ## Key decisions and why

@@ -24,7 +24,7 @@ class Scrubber:
 def compose(estado: str, *, scrub: Scrubber, hizo: str = "", respuesta: Optional[str] = None,
             razon: str = "", claves: Optional[list[str]] = None, evidencia: str = "") -> str:
     lines: list[str] = []
-    if respuesta is not None and estado == "terminada":
+    if respuesta and respuesta.strip() and estado == "terminada":
         lines.append(f"respuesta: {respuesta.strip()}")
     if estado == "terminada":
         if hizo:

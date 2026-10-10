@@ -7,6 +7,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+import ssl
 import threading
 import time
 from pathlib import Path
@@ -52,7 +53,8 @@ class Gateway:
         self.jev_enabled = os.environ.get("JEV_ENABLED", "1") == "1"
         cap = float(os.environ.get("BUDGET_USD", "40"))
         self.ledger = Ledger(os.path.join(os.environ.get("DATA_DIR", "data"), "ledger.json"), cap)
-        self.http = httpx.AsyncClient(timeout=httpx.Timeout(60, connect=10))
+        self.http = httpx.AsyncClient(timeout=httpx.Timeout(60, connect=10),
+                                     limits=httpx.Limits(max_keepalive_connections=0))
 
     @property
     def ready(self) -> bool:
@@ -79,7 +81,7 @@ class Gateway:
             "usage": {"include": True},
         }
         last: Optional[Exception] = None
-        for attempt in range(2):
+        for attempt in range(3):
             try:
                 r = await self.http.post(f"{BASE}/v1/chat/completions", headers=self._headers(),
                                          json=body, timeout=timeout)
@@ -89,7 +91,7 @@ class Gateway:
                 data = r.json()
                 self.ledger.add(float(data.get("usage", {}).get("cost", 0) or 0))
                 return data["choices"][0]["message"]["content"] or ""
-            except (httpx.HTTPError, KeyError) as e:
+            except (httpx.HTTPError, KeyError, ssl.SSLError, OSError) as e:
                 last = e
                 await _sleep(0.8 * (attempt + 1))
         raise RuntimeError(f"modelo no disponible: {type(last).__name__}")
