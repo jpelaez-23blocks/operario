@@ -1,0 +1,726 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#f4f6f5" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#111716" media="(prefers-color-scheme: dark)" />
+  <link rel="icon" href="data:," />
+  <title>Talk to My App</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap');
+
+    :root {
+      color-scheme: light dark;
+      --bg: #f4f6f5;
+      --sidebar: #e8eeeb;
+      --surface: #ffffff;
+      --surface-2: #f1f4f2;
+      --surface-3: #e9eeeb;
+      --ink: #15211e;
+      --muted: #5f6f69;
+      --faint: #81908a;
+      --line: #d6dfdb;
+      --line-strong: #bcc9c3;
+      --accent: #087b63;
+      --accent-strong: #045b49;
+      --accent-soft: #dcefe8;
+      --accent-ink: #064f40;
+      --warning: #bf5c18;
+      --warning-soft: #fff0e4;
+      --warning-ink: #7a3509;
+      --danger: #b64343;
+      --user: #173f37;
+      --user-ink: #f4fffb;
+      --shadow: 0 16px 40px rgba(33, 55, 48, .10);
+      --shadow-low: 0 6px 18px rgba(33, 55, 48, .08);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --font: "Manrope", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111716;
+        --sidebar: #17201e;
+        --surface: #1b2422;
+        --surface-2: #202b28;
+        --surface-3: #27332f;
+        --ink: #edf5f1;
+        --muted: #aab9b3;
+        --faint: #86968f;
+        --line: #33413c;
+        --line-strong: #4b5b55;
+        --accent: #16745d;
+        --accent-strong: #0f624f;
+        --accent-soft: #163d33;
+        --accent-ink: #a8ead2;
+        --warning: #f39b5d;
+        --warning-soft: #442719;
+        --warning-ink: #ffc399;
+        --danger: #ef8787;
+        --user: #266b58;
+        --user-ink: #f5fffb;
+        --shadow: 0 18px 48px rgba(0, 0, 0, .32);
+        --shadow-low: 0 8px 22px rgba(0, 0, 0, .24);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.5;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, textarea { font: inherit; }
+    button { color: inherit; }
+    ::selection { background: var(--accent); color: #fff; }
+    :focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 46%, transparent); outline-offset: 2px; }
+    * { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+    *::-webkit-scrollbar { width: 8px; height: 8px; }
+    *::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 99px; }
+
+    .app {
+      min-height: 100vh;
+      height: 100dvh;
+      display: grid;
+      grid-template-columns: 268px minmax(420px, 1fr) 314px;
+      overflow: hidden;
+    }
+
+    svg { display: block; }
+    .icon { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
+
+    .sidebar {
+      background: var(--sidebar);
+      border-right: 1px solid var(--line);
+      padding: 18px 14px 16px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      z-index: 20;
+    }
+    .workspace-switcher {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-align: left;
+      padding: 8px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+    .workspace-switcher:hover { background: color-mix(in srgb, var(--surface) 62%, transparent); }
+    .workspace-avatar {
+      width: 34px; height: 34px; border-radius: 10px;
+      display: grid; place-items: center;
+      background: var(--ink); color: var(--surface);
+      font-weight: 700; letter-spacing: -.03em;
+    }
+    .workspace-copy { min-width: 0; flex: 1; }
+    .workspace-name { display: block; font-weight: 700; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .workspace-meta { display: block; color: var(--muted); font-size: 12px; margin-top: 1px; }
+    .chevron { color: var(--muted); }
+
+    .new-thread {
+      margin: 18px 4px 14px;
+      border: 0;
+      background: var(--accent);
+      color: #fff;
+      min-height: 42px;
+      border-radius: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      font-weight: 700;
+      box-shadow: 0 5px 14px rgba(20, 42, 35, .13);
+      transition: background .18s ease, transform .18s ease, box-shadow .18s ease;
+    }
+    .new-thread:hover { background: var(--accent-strong); box-shadow: 0 7px 18px rgba(20, 42, 35, .18); }
+    .new-thread:active { transform: translateY(1px); }
+
+    .nav-label { color: var(--muted); font-size: 12px; font-weight: 700; margin: 12px 10px 7px; }
+    .nav { display: grid; gap: 3px; }
+    .nav-button {
+      appearance: none; border: 0; background: transparent; cursor: pointer;
+      width: 100%; min-height: 38px; border-radius: 9px; padding: 0 10px;
+      display: flex; align-items: center; gap: 10px; color: var(--muted); text-align: left;
+    }
+    .nav-button:hover { background: color-mix(in srgb, var(--surface) 58%, transparent); color: var(--ink); }
+    .nav-button.active { background: var(--surface); color: var(--ink); font-weight: 700; box-shadow: 0 2px 8px rgba(25, 50, 42, .05); }
+    .nav-badge { margin-left: auto; min-width: 21px; height: 20px; padding: 0 6px; border-radius: 99px; display: grid; place-items: center; background: var(--surface-3); color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+    .active .nav-badge { background: var(--accent-soft); color: var(--accent-ink); }
+
+    .recent { min-height: 0; overflow: auto; margin-top: 4px; padding-right: 2px; }
+    .recent-item { width: 100%; border: 0; background: transparent; cursor: pointer; text-align: left; padding: 9px 10px; border-radius: 9px; color: var(--muted); }
+    .recent-item:hover { background: color-mix(in srgb, var(--surface) 58%, transparent); }
+    .recent-item strong { display: block; color: var(--ink); font-size: 12px; font-weight: 600; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .recent-item span { display: block; font-size: 12px; margin-top: 2px; }
+
+    .sidebar-foot { margin-top: auto; padding-top: 12px; }
+    .connection {
+      display: flex; align-items: center; gap: 9px; padding: 10px;
+      border-top: 1px solid var(--line); color: var(--muted); font-size: 12px;
+    }
+    .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); outline: 3px solid color-mix(in srgb, var(--accent) 18%, transparent); }
+
+    .main {
+      background: var(--surface);
+      min-width: 0;
+      min-height: 0;
+      height: 100dvh;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      position: relative;
+    }
+    .topbar {
+      min-height: 70px;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: color-mix(in srgb, var(--surface) 94%, transparent);
+    }
+    .menu-button, .icon-button {
+      appearance: none; border: 0; background: transparent; cursor: pointer;
+      width: 38px; height: 38px; border-radius: 9px; display: grid; place-items: center; color: var(--muted);
+    }
+    .menu-button { display: none; }
+    .menu-button:hover, .icon-button:hover { background: var(--surface-2); color: var(--ink); }
+    .thread-title { min-width: 0; }
+    .thread-title h1 { font-size: 15px; line-height: 1.25; letter-spacing: -.02em; margin: 0; font-weight: 700; }
+    .thread-subtitle { margin-top: 3px; display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
+    .live-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; }
+    .top-actions { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+    .mode-pill { border: 1px solid var(--line); background: var(--surface-2); color: var(--muted); height: 28px; padding: 0 10px; border-radius: 99px; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; }
+
+    .conversation {
+      overflow-y: auto;
+      min-height: 0;
+      padding: 30px max(24px, calc((100% - 730px) / 2)) 24px;
+      scroll-behavior: smooth;
+    }
+    .welcome { margin-bottom: 28px; }
+    .welcome h2 { margin: 0; font-size: 26px; line-height: 1.2; letter-spacing: -.035em; font-weight: 700; }
+    .welcome p { margin: 8px 0 0; color: var(--muted); max-width: 56ch; }
+    .prompt-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+    .prompt-chip {
+      appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+      border-radius: 99px; min-height: 34px; padding: 0 12px; cursor: pointer; font-size: 12px; font-weight: 600;
+      transition: border-color .18s ease, background .18s ease;
+    }
+    .prompt-chip:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
+
+    .message { display: grid; margin: 20px 0; }
+    .message.user { justify-items: end; }
+    .message.agent { justify-items: start; }
+    .bubble { max-width: min(84%, 610px); }
+    .user .bubble { background: var(--user); color: var(--user-ink); border-radius: 15px 15px 4px 15px; padding: 12px 15px; box-shadow: var(--shadow-low); }
+    .agent .bubble { color: var(--ink); }
+    .agent-mark { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--muted); font-size: 12px; font-weight: 700; }
+    .agent-symbol { width: 23px; height: 23px; border-radius: 7px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent-ink); }
+    .agent-copy { background: var(--surface-2); border-radius: 4px 15px 15px 15px; padding: 13px 15px; }
+    .agent-copy p, .user .bubble p { margin: 0; }
+    .agent-copy p + p { margin-top: 8px; }
+    .message-time { margin-top: 5px; color: var(--faint); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+    .action-sheet {
+      width: min(100%, 610px);
+      margin-top: 10px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    .action-head { display: flex; align-items: center; gap: 11px; padding: 13px 14px; border-bottom: 1px solid var(--line); }
+    .action-icon { width: 34px; height: 34px; border-radius: 10px; background: var(--warning-soft); color: var(--warning-ink); display: grid; place-items: center; }
+    .action-title { min-width: 0; flex: 1; }
+    .action-title strong { display: block; font-size: 12px; }
+    .action-title span { display: block; font-size: 12px; color: var(--muted); margin-top: 1px; }
+    .review-tag { color: var(--warning-ink); background: var(--warning-soft); border-radius: 99px; padding: 4px 8px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+    .change { padding: 13px 14px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; }
+    .change-block { min-width: 0; }
+    .change-label { color: var(--muted); font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+    .change-value { font-weight: 700; font-size: 12px; }
+    .change-note { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .change-arrow { color: var(--accent); }
+    .detail-panel { display: none; padding: 0 14px 13px; color: var(--muted); font-size: 12px; }
+    .detail-panel.open { display: block; }
+    .detail-line { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-top: 1px solid var(--line); }
+    .detail-line strong { color: var(--ink); font-weight: 600; text-align: right; }
+    .action-buttons { padding: 10px 14px 13px; border-top: 1px solid var(--line); display: flex; gap: 8px; justify-content: flex-end; }
+    .secondary-button, .primary-button {
+      border-radius: 9px; min-height: 34px; padding: 0 12px; font-size: 12px; font-weight: 700; cursor: pointer;
+    }
+    .secondary-button { border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+    .secondary-button:hover { border-color: var(--line-strong); background: var(--surface-2); }
+    .primary-button { border: 0; background: var(--accent); color: #fff; }
+    .primary-button:hover { background: var(--accent-strong); }
+    .primary-button[disabled] { cursor: not-allowed; opacity: .52; }
+
+    .composer-zone {
+      padding: 12px max(24px, calc((100% - 730px) / 2)) max(18px, env(safe-area-inset-bottom));
+      background: linear-gradient(to bottom, color-mix(in srgb, var(--surface) 0%, transparent), var(--surface) 18%);
+    }
+    .offline-note { display: none; align-items: center; gap: 7px; margin: 0 0 8px 2px; color: var(--warning-ink); font-size: 12px; }
+    .offline-note.show { display: flex; }
+    .composer {
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      padding: 10px 10px 9px 14px;
+      transition: border-color .18s ease, box-shadow .18s ease;
+    }
+    .composer:focus-within { border-color: var(--accent); box-shadow: 0 12px 34px rgba(20, 42, 35, .16); }
+    textarea {
+      width: 100%; resize: none; border: 0; background: transparent; color: var(--ink);
+      min-height: 44px; max-height: 150px; padding: 4px 2px; outline: 0; line-height: 1.5;
+    }
+    textarea::placeholder { color: var(--faint); }
+    .composer-foot { display: flex; align-items: center; gap: 7px; }
+    .composer-tool {
+      appearance: none; border: 0; background: transparent; color: var(--muted); cursor: pointer;
+      width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center;
+    }
+    .composer-tool:hover { background: var(--surface-2); color: var(--ink); }
+    .input-status { color: var(--faint); font-size: 12px; margin-left: 2px; }
+    .send-button {
+      margin-left: auto; border: 0; background: var(--accent); color: #fff; cursor: pointer;
+      width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center;
+      transition: background .18s ease, opacity .18s ease, transform .18s ease;
+    }
+    .send-button:hover { background: var(--accent-strong); }
+    .send-button:active { transform: translateY(1px); }
+    .send-button:disabled { opacity: .36; cursor: not-allowed; }
+    .composer-hint { text-align: center; color: var(--faint); font-size: 12px; margin-top: 8px; }
+    kbd { font-family: inherit; border: 1px solid var(--line); background: var(--surface-2); border-radius: 4px; padding: 1px 4px; box-shadow: 0 1px 0 var(--line); }
+
+    .run-panel {
+      border-left: 1px solid var(--line);
+      background: var(--surface-2);
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .run-head { min-height: 70px; padding: 0 18px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
+    .run-head strong { font-size: 12px; }
+    .run-state { margin-left: auto; border-radius: 99px; background: var(--accent-soft); color: var(--accent-ink); padding: 4px 8px; font-size: 12px; font-weight: 700; }
+    .run-scroll { overflow: auto; padding: 17px 16px 24px; }
+    .screen-preview {
+      aspect-ratio: 16/10;
+      border-radius: 10px;
+      border: 1px solid var(--line-strong);
+      background: var(--surface);
+      padding: 10px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-low);
+    }
+    .preview-bar { height: 10px; display: flex; gap: 4px; }
+    .preview-bar i { width: 5px; height: 5px; border-radius: 50%; background: var(--line-strong); }
+    .preview-layout { display: grid; grid-template-columns: 31% 1fr; gap: 7px; height: calc(100% - 12px); }
+    .preview-nav { background: var(--surface-3); border-radius: 5px; }
+    .preview-content { padding-top: 3px; }
+    .preview-line { height: 5px; background: var(--line); border-radius: 99px; margin-bottom: 6px; }
+    .preview-line.short { width: 52%; }
+    .preview-table { margin-top: 8px; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+    .preview-row { height: 15px; border-bottom: 1px solid var(--line); background: var(--surface); }
+    .preview-row:last-child { border-bottom: 0; background: var(--accent-soft); }
+    .cursor-ring { position: absolute; right: 24%; bottom: 22%; width: 14px; height: 14px; border: 2px solid var(--accent); border-radius: 50%; outline: 4px solid color-mix(in srgb, var(--accent) 16%, transparent); }
+    .preview-caption { display: flex; align-items: center; gap: 7px; margin-top: 9px; color: var(--muted); font-size: 12px; }
+    .section-title { font-size: 12px; font-weight: 700; margin: 24px 0 10px; }
+    .timeline { list-style: none; margin: 0; padding: 0; }
+    .timeline li { position: relative; padding: 0 0 18px 27px; min-height: 34px; }
+    .timeline li::before { content: ""; position: absolute; left: 8px; top: 16px; bottom: 0; width: 1px; background: var(--line-strong); }
+    .timeline li:last-child::before { display: none; }
+    .timeline-dot { position: absolute; left: 2px; top: 2px; width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--line-strong); background: var(--surface-2); }
+    .timeline li.done .timeline-dot { background: var(--accent); border-color: var(--accent); }
+    .timeline li.active .timeline-dot { border-color: var(--warning); box-shadow: 0 0 0 4px var(--warning-soft); }
+    .timeline strong { display: block; font-size: 12px; }
+    .timeline span { color: var(--muted); font-size: 12px; display: block; margin-top: 2px; }
+    .receipt { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 3px; }
+    .receipt-row { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; font-size: 12px; color: var(--muted); }
+    .receipt-row strong { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+    .mobile-run { display: none; }
+    .backdrop { display: none; }
+
+    @media (max-width: 1120px) {
+      .app { grid-template-columns: 238px minmax(400px, 1fr) 278px; }
+      .conversation, .composer-zone { padding-left: 28px; padding-right: 28px; }
+    }
+
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 238px minmax(0, 1fr); }
+      .run-panel { display: none; }
+      .mobile-run {
+        display: flex; align-items: center; gap: 8px; padding: 8px 12px; margin-bottom: 14px;
+        background: var(--accent-soft); color: var(--accent-ink); border-radius: 10px; font-size: 12px; font-weight: 600;
+      }
+      .mobile-run .icon { width: 15px; height: 15px; }
+      .mobile-run span:last-child { margin-left: auto; font-weight: 700; }
+    }
+
+    @media (max-width: 680px) {
+      .app { display: block; height: 100dvh; }
+      .sidebar {
+        position: fixed; inset: 0 auto 0 0; width: min(84vw, 304px);
+        transform: translateX(-105%); transition: transform .22s cubic-bezier(.2,.8,.2,1);
+        box-shadow: 20px 0 50px rgba(0,0,0,.16);
+        visibility: hidden; pointer-events: none;
+      }
+      .sidebar.open { transform: translateX(0); visibility: visible; pointer-events: auto; }
+      .backdrop { position: fixed; inset: 0; background: rgba(7,17,14,.45); z-index: 15; }
+      .backdrop.show { display: block; }
+      .main { height: 100dvh; }
+      .menu-button { display: grid; }
+      .topbar { min-height: 62px; padding: 0 12px; gap: 8px; }
+      .thread-title h1 { font-size: 14px; }
+      .mode-pill { display: none; }
+      .icon-button.more { display: none; }
+      .conversation { padding: 22px 15px 18px; }
+      .welcome h2 { font-size: 23px; }
+      .welcome p { font-size: 12px; }
+      .prompt-row { display: grid; grid-template-columns: 1fr; overflow: visible; margin-right: 0; padding-right: 0; }
+      .prompt-chip { width: 100%; text-align: left; padding: 9px 12px; white-space: normal; }
+      .bubble { max-width: 92%; }
+      .action-sheet { width: 100%; }
+      .change { grid-template-columns: 1fr; gap: 8px; }
+      .change-arrow { transform: rotate(90deg); justify-self: start; }
+      .action-buttons { justify-content: stretch; }
+      .action-buttons button { flex: 1; }
+      .composer-zone { padding: 8px 12px max(10px, env(safe-area-inset-bottom)); }
+      .composer-hint { display: none; }
+      .composer { box-shadow: 0 8px 28px rgba(20, 42, 35, .13); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .001ms !important; animation-duration: .001ms !important; animation-iteration-count: 1 !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar" aria-label="Workspace navigation">
+      <button class="workspace-switcher" type="button" aria-label="Switch workspace">
+        <span class="workspace-avatar">FD</span>
+        <span class="workspace-copy">
+          <span class="workspace-name">Front Desk</span>
+          <span class="workspace-meta">Demo workspace</span>
+        </span>
+        <svg class="icon chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+
+      <button class="new-thread" id="newThread" type="button">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        New conversation
+      </button>
+
+      <div class="nav-label">Workspace</div>
+      <nav class="nav">
+        <button class="nav-button active" type="button">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"/><path d="M8 9h8M8 13h5"/></svg>
+          Conversations <span class="nav-badge">3</span>
+        </button>
+        <button class="nav-button" type="button">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 2v4M16 2v4M3 9h18"/></svg>
+          Scheduled
+        </button>
+        <button class="nav-button" type="button">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11h6M9 15h4"/><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="m8 7 1 1 2-2"/></svg>
+          Activity log
+        </button>
+        <button class="nav-button" type="button">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 8h8v8H8z"/></svg>
+          Connected apps <span class="nav-badge">1</span>
+        </button>
+      </nav>
+
+      <div class="nav-label">Recent</div>
+      <div class="recent">
+        <button class="recent-item" type="button"><strong>Move Andrea's cleaning</strong><span>Today · Awaiting review</span></button>
+        <button class="recent-item" type="button"><strong>Tomorrow's open slots</strong><span>Yesterday · Completed</span></button>
+        <button class="recent-item" type="button"><strong>Export September invoices</strong><span>Oct 8 · Completed</span></button>
+      </div>
+
+      <div class="sidebar-foot">
+        <div class="connection"><span class="pulse-dot"></span><span>No runtime connected</span></div>
+      </div>
+    </aside>
+
+    <div class="backdrop" id="backdrop"></div>
+
+    <main class="main">
+      <header class="topbar">
+        <button class="menu-button" id="menuButton" type="button" aria-label="Open navigation" aria-expanded="false">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+        <div class="thread-title">
+          <h1>Practice desktop</h1>
+          <div class="thread-subtitle"><span class="live-dot"></span>Interface preview</div>
+        </div>
+        <div class="top-actions">
+          <span class="mode-pill">
+            <svg class="icon" style="width:13px;height:13px" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
+            Review before changes
+          </span>
+          <button class="icon-button more" type="button" aria-label="Conversation options">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1" fill="currentColor" stroke="none"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <section class="conversation" id="conversation" aria-label="Conversation">
+        <div class="mobile-run">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 22h8M12 18v4"/></svg>
+          Practice Desktop preview <span>No runtime</span>
+        </div>
+
+        <div class="welcome">
+          <h2>What should we do?</h2>
+          <p>Describe the result in everyday language. Operario will inspect the app, show its plan, and pause before any sensitive change.</p>
+          <div class="prompt-row" aria-label="Example commands">
+            <button class="prompt-chip" type="button" data-prompt="Show me tomorrow's open appointments">Find open appointments</button>
+            <button class="prompt-chip" type="button" data-prompt="Reschedule an appointment for next Thursday">Reschedule a visit</button>
+            <button class="prompt-chip" type="button" data-prompt="Export this month's invoices as a CSV">Export invoices</button>
+          </div>
+        </div>
+
+        <article class="message user">
+          <div class="bubble"><p>Move Andrea’s cleaning to Thursday, October 15, 2026 at 2 PM and prepare a confirmation.</p></div>
+          <div class="message-time">12:04 PM</div>
+        </article>
+
+        <article class="message agent">
+          <div class="bubble">
+            <div class="agent-mark">
+              <span class="agent-symbol">
+                <svg class="icon" style="width:14px;height:14px" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><circle cx="12" cy="12" r="4"/></svg>
+              </span>
+              OPERARIO
+            </div>
+            <div class="agent-copy">
+              <p>I found one matching appointment for Andrea M. Thursday, October 15, 2026 at 2:00 PM is open.</p>
+              <p>Review the change below. Nothing will be changed until you approve it.</p>
+            </div>
+
+            <div class="action-sheet">
+              <div class="action-head">
+                <div class="action-icon">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.8 2.5 17.3A2 2 0 0 0 4.2 20h15.6a2 2 0 0 0 1.7-2.7L13.7 3.8a2 2 0 0 0-3.4 0Z"/></svg>
+                </div>
+                <div class="action-title"><strong>Appointment change</strong><span>Andrea M. · Cleaning</span></div>
+                <span class="review-tag">Needs review</span>
+              </div>
+              <div class="change">
+                <div class="change-block">
+                  <div class="change-label">CURRENT</div>
+                  <div class="change-value">Tuesday, October 13 · 10:30 AM</div>
+                  <div class="change-note">Dr. Patel · Room 2</div>
+                </div>
+                <svg class="icon change-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                <div class="change-block">
+                  <div class="change-label">PROPOSED</div>
+                  <div class="change-value">Thursday, October 15 · 2:00 PM</div>
+                  <div class="change-note">Dr. Patel · Room 2</div>
+                </div>
+              </div>
+              <div class="detail-panel" id="detailPanel">
+                <div class="detail-line"><span>Patient match</span><strong>Andrea M. · ending 0184</strong></div>
+                <div class="detail-line"><span>Conflict check</span><strong>No conflict found</strong></div>
+                <div class="detail-line"><span>Notification</span><strong>Prepared, not sent</strong></div>
+              </div>
+              <div class="action-buttons">
+                <button class="secondary-button" id="reviewDetails" type="button" aria-expanded="false">Review details</button>
+                <button class="primary-button" type="button" disabled title="Connect an Operario runtime to approve changes">Connect runtime to approve</button>
+              </div>
+            </div>
+          </div>
+          <div class="message-time">12:04 PM · Paused for review</div>
+        </article>
+      </section>
+
+      <footer class="composer-zone">
+        <div class="offline-note" id="offlineNote" role="status">
+          <svg class="icon" style="width:14px;height:14px" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+          Interface preview only. Connect an Operario runtime to execute commands.
+        </div>
+        <form class="composer" id="composerForm">
+          <textarea id="messageInput" rows="1" maxlength="1200" aria-label="Instruction" placeholder="Tell Operario what to do…"></textarea>
+          <div class="composer-foot">
+            <button class="composer-tool" type="button" aria-label="Attach reference" title="Attach reference">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.4 11.6-8.9 8.9a6 6 0 0 1-8.5-8.5l9.6-9.6a4 4 0 0 1 5.7 5.7l-9.6 9.6a2 2 0 1 1-2.8-2.8l8.9-8.9"/></svg>
+            </button>
+            <span class="input-status" id="inputStatus">Plain language works best</span>
+            <button class="send-button" id="sendButton" type="submit" aria-label="Send instruction" disabled>
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 14-7-4 14-3-6-7-1Z"/><path d="m12 13 7-8"/></svg>
+            </button>
+          </div>
+        </form>
+        <div class="composer-hint"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> to send · Operario asks before sensitive changes</div>
+      </footer>
+    </main>
+
+    <aside class="run-panel" aria-label="Current run">
+      <div class="run-head"><strong>Current run</strong><span class="run-state">Waiting</span></div>
+      <div class="run-scroll">
+        <div class="screen-preview" aria-label="Abstract preview of the connected desktop">
+          <div class="preview-bar"><i></i><i></i><i></i></div>
+          <div class="preview-layout">
+            <div class="preview-nav"></div>
+            <div class="preview-content">
+              <div class="preview-line short"></div><div class="preview-line"></div>
+              <div class="preview-table"><div class="preview-row"></div><div class="preview-row"></div><div class="preview-row"></div></div>
+            </div>
+          </div>
+          <span class="cursor-ring"></span>
+        </div>
+        <div class="preview-caption"><span class="pulse-dot"></span>Practice Desktop · Preview frame</div>
+
+        <div class="section-title">Run progress</div>
+        <ol class="timeline">
+          <li class="done"><span class="timeline-dot"></span><strong>Matched the patient</strong><span>1 record matched “Andrea M.”</span></li>
+          <li class="done"><span class="timeline-dot"></span><strong>Checked availability</strong><span>October 15 at 2:00 PM is open</span></li>
+          <li class="done"><span class="timeline-dot"></span><strong>Prepared the change</strong><span>No changes made yet</span></li>
+          <li class="active"><span class="timeline-dot"></span><strong>Waiting for your review</strong><span>The desktop is paused</span></li>
+        </ol>
+
+        <div class="section-title">Run receipt</div>
+        <div class="receipt">
+          <div class="receipt-row"><span>Session</span><strong>OP-1048</strong></div>
+          <div class="receipt-row"><span>Started</span><strong>12:04 PM</strong></div>
+          <div class="receipt-row"><span>Actions</span><strong>0 writes</strong></div>
+          <div class="receipt-row"><span>Screens reviewed</span><strong>4</strong></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    (function () {
+      var input = document.getElementById('messageInput');
+      var form = document.getElementById('composerForm');
+      var send = document.getElementById('sendButton');
+      var conversation = document.getElementById('conversation');
+      var offlineNote = document.getElementById('offlineNote');
+      var inputStatus = document.getElementById('inputStatus');
+      var sidebar = document.getElementById('sidebar');
+      var backdrop = document.getElementById('backdrop');
+      var menuButton = document.getElementById('menuButton');
+      var detailButton = document.getElementById('reviewDetails');
+      var detailPanel = document.getElementById('detailPanel');
+
+      function resizeInput() {
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 150) + 'px';
+        var length = input.value.trim().length;
+        send.disabled = length === 0;
+        inputStatus.textContent = length > 1000 ? (1200 - input.value.length) + ' characters left' : 'Plain language works best';
+      }
+
+      function syncSidebarAccess() {
+        var mobile = window.matchMedia('(max-width: 680px)').matches;
+        if (mobile && !sidebar.classList.contains('open')) sidebar.setAttribute('inert', '');
+        else sidebar.removeAttribute('inert');
+      }
+
+      function closeMenu() {
+        sidebar.classList.remove('open');
+        backdrop.classList.remove('show');
+        menuButton.setAttribute('aria-expanded', 'false');
+        syncSidebarAccess();
+      }
+
+      function addMessage(text) {
+        var article = document.createElement('article');
+        article.className = 'message user';
+        var bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        var paragraph = document.createElement('p');
+        paragraph.textContent = text;
+        bubble.appendChild(paragraph);
+        var stamp = document.createElement('div');
+        stamp.className = 'message-time';
+        stamp.textContent = 'Just now · Preview only';
+        article.appendChild(bubble);
+        article.appendChild(stamp);
+        conversation.appendChild(article);
+
+        var response = document.createElement('article');
+        response.className = 'message agent';
+        response.innerHTML = '<div class="bubble"><div class="agent-mark"><span class="agent-symbol"><svg class="icon" style="width:14px;height:14px" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3"></path><circle cx="12" cy="12" r="4"></circle></svg></span>OPERARIO</div><div class="agent-copy"><p>Your instruction is ready. This interface preview is not connected to a live Operario runtime, so no app action was taken.</p></div></div><div class="message-time">Just now</div>';
+        conversation.appendChild(response);
+        requestAnimationFrame(function () { conversation.scrollTop = conversation.scrollHeight; });
+      }
+
+      input.addEventListener('input', resizeInput);
+      input.addEventListener('keydown', function (event) {
+        if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+          event.preventDefault();
+          if (input.value.trim()) form.requestSubmit();
+        }
+      });
+
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        var text = input.value.trim();
+        if (!text) return;
+        addMessage(text);
+        input.value = '';
+        resizeInput();
+        offlineNote.classList.add('show');
+      });
+
+      document.querySelectorAll('[data-prompt]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          input.value = button.getAttribute('data-prompt');
+          resizeInput();
+          input.focus();
+        });
+      });
+
+      document.getElementById('newThread').addEventListener('click', function () {
+        input.value = '';
+        resizeInput();
+        input.focus();
+        closeMenu();
+      });
+
+      menuButton.addEventListener('click', function () {
+        var opening = !sidebar.classList.contains('open');
+        sidebar.classList.toggle('open', opening);
+        backdrop.classList.toggle('show', opening);
+        menuButton.setAttribute('aria-expanded', String(opening));
+        syncSidebarAccess();
+      });
+      backdrop.addEventListener('click', closeMenu);
+
+      detailButton.addEventListener('click', function () {
+        var opening = !detailPanel.classList.contains('open');
+        detailPanel.classList.toggle('open', opening);
+        detailButton.textContent = opening ? 'Hide details' : 'Review details';
+        detailButton.setAttribute('aria-expanded', String(opening));
+      });
+
+      window.addEventListener('resize', syncSidebarAccess);
+      syncSidebarAccess();
+      resizeInput();
+    })();
+  </script>
+</body>
+</html>
