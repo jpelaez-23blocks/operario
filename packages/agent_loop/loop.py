@@ -20,6 +20,10 @@ log = logging.getLogger("operario.loop")
 SYSTEM = f"""You operate a desktop application that has no API, only a screen (1280x800), like a new employee.
 You receive the task, your action history and the current screenshot. You answer ONE action as strict JSON:
 {action_schema_text()}
+First step, before anything else:
+- When the task contains any date-relative word (vencidas, hoy, ayer, atrasadas, pendientes, próximos, vigentes,
+  esta semana, este mes, or similar), first locate the app's displayed date on screen and record it in "thought".
+  All date comparisons use that date. Never use your own knowledge of the real date.
 Rules:
 - Coordinates x,y are normalized 0-1000 over the full screenshot (0,0 top-left). Aim at the center of the target.
 - One action per answer. After each action you get a new screenshot; check it before the next step.

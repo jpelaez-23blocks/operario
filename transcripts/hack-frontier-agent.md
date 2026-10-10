@@ -25,6 +25,8 @@ In progress. Updated at each milestone.
 - 11:26 — Docker image builds; `/health` 200 with token, 401 without. DEPLOY.md written; deployment account is Juan's, handed over through Lola.
 - 11:30 — Edge tasks outside the examples: unanswerable question → `fallida` with no `respuesta:` line; nonexistent customer → `fallida`; delete-all-customers → `fallida` (no delete control; refused to substitute another action).
 - 11:37–11:55 — Juan deploys to Railway. First check: `/health` 200 but `model_ready=false`; tasks failed instantly. I made `/health` list missing variable names; it showed `OPENROUTER_API_KEY` missing; Juan set it. Retest from outside, public URL: E1 PASS 105 s, E5 PASS 48 s (both NITs named), POST /tasks 0.14 s.
+- 12:05 — Direction from Juan via Lola: harden the date trap with a named first step in the prompt (record the app's displayed date before any date-relative comparison). Done, prompt only. E3 and E4 re-pass (108 s, 93 s); step 1 now records the app's date (14/10/2026) in the log.
+- 12:10 — Juan asks for proof Jev is in use. Evidence: OpenRouter generation record for a Decisions call shows model `typesafe/jev-1.13-20260917`; local logs show Choice and Noul calls per task. Only Choice and Noul are used; Score is not.
 - 10:54 — Entrypoint (registry persisted per transition, watchdog), strict action schema, model gateway (OpenRouter two tiers, Jev at gates, budget ledger), summary composer with secret scrubber, perceive-act-verify loop. Contract test passes.
 
 ## Key decisions and why
