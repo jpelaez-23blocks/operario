@@ -124,7 +124,7 @@ def list_tasks(limit: int = 20):
     rows = sorted(tasks.items(), key=lambda kv: kv[1].get("inicio", 0), reverse=True)[:max(1, min(limit, 100))]
     return [{"task_id": k, "estado": v["estado"], "tarea": v.get("tarea", ""), "resumen": v["resumen"],
              "segundos": round(v.get("fin", time.time()) - v.get("inicio", time.time())),
-             "pasos": v.get("pasos", [])[-40:]} for k, v in rows]
+             "pasos": v.get("pasos", [])[-300:]} for k, v in rows]
 
 
 @app.get("/tasks/{task_id}", dependencies=[Depends(bearer)])

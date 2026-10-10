@@ -26,14 +26,16 @@ First step, before anything else:
   on your first step. All date comparisons use that date. Never use your own knowledge of the real date.
 - Keep a running memory in "notas" (under 500 characters): every fact you read that you will need later (ids, names,
   doctor, room, authorization or document numbers, amounts, dates, what you already tried that failed). Your notas
-  replaces the previous one each step, so copy forward everything still needed. Check notas before re-reading a screen.
+  replaces the previous one, so copy forward everything still needed. Include "notas" ONLY on a step where you learned
+  a new fact or something failed; otherwise leave it out and your previous notas stay. Check notas before re-reading a screen.
 - Keep "thought" under 120 characters: what you see and what you do next. Do not repeat the date after the first step.
 Rules:
 - Coordinates x,y are normalized 0-1000 over the full screenshot (0,0 top-left). Aim at the center of the target.
 - One action per answer. After each action you get a new screenshot; check it before the next step.
 - The screen repaints up to 1 s after a click. If the screen looks unchanged, use "wait" once before retrying.
 - Typing into a field that already has text appends. Use "replace": true on type to select all first.
-- To save time you may chain up to 2 follow-up actions in "then" (click, type or key), run in order without a new
+- To save time you may chain up to 2 follow-up actions in "then" (up to 3 when they only fill plain text fields of
+  one form: click field, type, click next field, type) (click, type or key), run in order without a new
   screenshot. Chain ONLY when every follow-up targets something already visible now that the first action cannot
   move or change (for example: click a field, then type into it; type, then press tab). Never chain after an action
   that opens a menu, dialog, dropdown or new page, and never chain a save, submit, export, delete or confirm click:
@@ -85,6 +87,7 @@ class AgentLoop:
         self.route_hint = ""
         self.route = ""
         self.notes = ""
+        self.next_wait = 1.0
 
     def _left(self) -> float:
         return self.deadline - time.monotonic()
@@ -193,7 +196,7 @@ class AgentLoop:
             if not self.s.connected:
                 self.emit("conexión perdida; reconectando")
                 await self.s.reconnect()
-            await self.s.settle()
+            await self.s.settle(min_wait=self.next_wait)
             png = self.s.screenshot_jpeg()
             h = _hash(png)
             if h == prev_hash:
@@ -241,6 +244,8 @@ class AgentLoop:
                         "If more than one fits, finish with done/fallida naming each candidate's identifying values.")
                 continue
             self.history.append(self._describe(a))
+            # typing and key presses paint at once; only clicks/scrolls can trigger the slow (<=1 s) repaint
+            self.next_wait = 0.5 if a.action in ("type", "key") and all(c.action != "click" for c in a.then or []) else 1.0
             try:
                 await self._act(a)
             except InputFrozen:

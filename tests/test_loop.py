@@ -64,7 +64,7 @@ def test_chain_validation():
     base = {"thought": "t", "action": "click", "x": 1, "y": 1}
     Action.model_validate({**base, "then": [{"action": "key", "keys": "tab"}]})
     with pytest.raises(Exception):
-        Action.model_validate({**base, "then": [{"action": "key", "keys": "tab"}] * 3})
+        Action.model_validate({**base, "then": [{"action": "key", "keys": "tab"}] * 4})
     with pytest.raises(Exception):
         Action.model_validate({"thought": "t", "action": "done", "estado": "terminada",
                                "then": [{"action": "key", "keys": "tab"}]})

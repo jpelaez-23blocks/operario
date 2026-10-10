@@ -30,7 +30,7 @@ class Chained(BaseModel):
         return self
 
 
-MAX_CHAIN = 2
+MAX_CHAIN = 3
 
 
 class Action(BaseModel):
