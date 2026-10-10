@@ -18,3 +18,11 @@ def test_scrubs_labelled_credentials_from_a_summary():
     sc = Scrubber([])
     out = compose("terminada", scrub=sc, hizo="La clave de integración: CNR-7F3A-91QD y el token = abc123xyz")
     assert "CNR-7F3A-91QD" not in out and "abc123xyz" not in out
+
+
+def test_reason_keys_are_never_redacted_by_the_credential_patterns():
+    sc = Scrubber(["desktoppw"])
+    out = compose("fallida", scrub=sc, razon="Ambiguo", claves=["INT-1", "P-0081", "P-0129", "52345678"])
+    for k in ("INT-1", "P-0081", "P-0129", "52345678"):
+        assert k in out, k
+    assert "[oculto]" not in out

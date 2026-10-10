@@ -34,5 +34,5 @@ def compose(estado: str, *, scrub: Scrubber, hizo: str = "", respuesta: Optional
     else:
         lines.append("No se completó la tarea." + (f" {razon.strip()}" if razon else ""))
         if claves:
-            lines.append("Datos clave: " + ", ".join(c.strip() for c in claves if c))
+            lines.append("Identificadores: " + ", ".join(c.strip() for c in claves if c))
     return scrub("\n".join(lines))[:1500]
