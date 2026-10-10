@@ -64,13 +64,16 @@ class AgentLoop:
         self.gw, self.s, self.task, self.deadline, self.emit = gw, session, task, deadline, emit
         self.history: list[str] = []
         self.verify_rejections = 0
+        self.ambiguity_blocks = 0
+        self.route_hint = ""
+        self.route = ""
 
     def _left(self) -> float:
         return self.deadline - time.monotonic()
 
     async def _decide(self, shot: bytes, prev: Optional[bytes], note: str, tier: str) -> Action:
         hist = "\n".join(f"{i + 1}. {h}" for i, h in enumerate(self.history[-12:])) or "(none yet)"
-        text = f"TASK: {self.task}\n\nACTIONS SO FAR:\n{hist}\n\n{note}\nCurrent screenshot attached."
+        text = f"TASK: {self.task}\n{self.route_hint}\n\nACTIONS SO FAR:\n{hist}\n\n{note}\nCurrent screenshot attached."
         imgs = [shot]
         err = ""
         for attempt in range(3):
@@ -95,6 +98,37 @@ class AgentLoop:
         # The verifier is down, not rejecting: fall back to the agent's own cited evidence.
         return Verification(verificada=bool(claim.evidencia or claim.respuesta),
                             evidencia=(claim.evidencia or claim.respuesta or "sin verificador")[:300])
+
+    # ---- Jev decision gates (third-party TypeSafe model, fail open) ----------
+    async def _gate_route(self) -> None:
+        ans = await self.gw.jev(f"Task given to an operator of a desktop application: {self.task}", {"route": {
+            "type": "choice", "instructions": "What kind of work is this task",
+            "criteria": {"change": "Create or modify records", "question": "Answer a question, changing nothing",
+                         "export": "Export or generate a report", "unsafe": "Impossible, destructive or unsafe request"}}})
+        if ans and "route" in ans:
+            r = ans["route"]
+            self.route = str(r.get("choice"))
+            self.route_hint = f"ROUTE (Jev Choice): {r.get('choice')} (confidence {r.get('confidence')}). "
+            self.emit(f"jev choice: {r.get('choice')} conf={r.get('confidence')}")
+            if r.get("choice") == "question":
+                self.route_hint += "This is read-only: change nothing. "
+
+    async def _gate_ambiguity(self) -> float:
+        state = (f"Task: {self.task}\nWhat the operator observed and did so far:\n" + "\n".join(self.history[-10:]))
+        ans = await self.gw.jev(state, {"amb": {"type": "noul", "instructions":
+            "The operator saw more than one record that fits the person or item named in the task, "
+            "and nothing in the task says which one is meant"}})
+        v = float(ans["amb"].get("noul", 0)) if ans and "amb" in ans else 0.0
+        self.emit(f"jev noul ambiguity={v:.2f}")
+        return v
+
+    async def _gate_proof(self, claim: Action, evidence: str) -> float:
+        state = f"Task: {self.task}\nClaim: {claim.estado}. Evidence read from the final screen: {evidence}"
+        ans = await self.gw.jev(state, {"proof": {"type": "noul", "instructions":
+            "The evidence shows the task was actually completed (saved, exported or answered), not just attempted"}})
+        v = float(ans["proof"].get("noul", 1)) if ans and "proof" in ans else 1.0
+        self.emit(f"jev noul proof={v:.2f}")
+        return v
 
     async def _act(self, a: Action) -> None:
         w, h = self.s.width, self.s.height
@@ -127,6 +161,7 @@ class AgentLoop:
     async def run(self) -> Outcome:
         prev_hash, stale, steps, prev_png = "", 0, 0, None
         note = ""
+        await self._gate_route()
         while self._left() > 8:
             if not self.s.connected:
                 self.emit("conexión perdida; reconectando")
@@ -138,7 +173,7 @@ class AgentLoop:
                 stale += 1
                 note = "NOTE: the screen did not change after your last action."
             else:
-                stale, note = 0, note if note.startswith("VERIFIER") else ""
+                stale, note = 0, note if note.startswith(("VERIFIER", "JEV")) else ""
             prev_hash, prev_png = h, png
             tier = "strong" if stale >= 2 or self.verify_rejections else "fast"
             a = await self._decide(png, prev_png, note, tier)
@@ -157,9 +192,23 @@ class AgentLoop:
                     if not v.verificada:
                         return Outcome("fallida", razon="no se pudo verificar en pantalla que la tarea quedara completa",
                                        steps=steps)
-                    return Outcome("terminada", hizo=a.thought, respuesta=a.respuesta,
+                    if self.verify_rejections < 2 and self._left() > 40 and \
+                            await self._gate_proof(a, a.evidencia or v.evidencia) < 0.3:
+                        self.verify_rejections += 1
+                        self.history.append("claimed done, Jev judged the evidence insufficient")
+                        note = "VERIFIER: the evidence does not show the task was completed. Look again and finish properly."
+                        continue
+                    return Outcome("terminada", hizo=a.thought,
+                                   respuesta=a.respuesta if self.route in ("", "question") else None,
                                    evidencia=a.evidencia or v.evidencia, steps=steps)
                 return Outcome("fallida", razon=a.razon or "", claves=a.claves or [], steps=steps)
+            if a.action == "type" and self.ambiguity_blocks < 2 and len(self.history) >= 3 \
+                    and await self._gate_ambiguity() >= 0.9:
+                self.ambiguity_blocks += 1
+                self.history.append("held a write: Jev flagged possible ambiguity")
+                note = ("JEV: several records may fit the task. Before writing, confirm exactly one record matches. "
+                        "If more than one fits, finish with done/fallida naming each candidate's identifying values.")
+                continue
             self.history.append(self._describe(a))
             try:
                 await self._act(a)

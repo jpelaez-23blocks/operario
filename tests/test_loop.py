@@ -10,6 +10,9 @@ class FakeGw:
     def __init__(self, script, approve=True):
         self.script, self.approve, self.calls = list(script), approve, 0
 
+    async def jev(self, *a, **k):
+        return None
+
     async def chat(self, tier, system, user, images, **kw):
         self.calls += 1
         assert images and images[0][:2] == b"\xff\xd8"
