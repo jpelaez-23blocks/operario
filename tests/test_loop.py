@@ -68,3 +68,22 @@ def test_chain_validation():
     with pytest.raises(Exception):
         Action.model_validate({"thought": "t", "action": "done", "estado": "terminada",
                                "then": [{"action": "key", "keys": "tab"}]})
+
+
+class StrictGw(FakeGw):
+    """Verifier says verificada true but lists an unmet requirement: the gate must reject."""
+    async def chat(self, tier, system, user, images, **kw):
+        if "audit" in system:
+            return json.dumps({"verificada": True, "evidencia": "saved",
+                               "requisitos": [{"requisito": "paciente coincide con el nombre", "cumplido": True, "evidencia": "P-1"},
+                                              {"requisito": "condicion si suma tres", "cumplido": False, "evidencia": ""}]})
+        return await super().chat(tier, system, user, images, **kw)
+
+
+async def test_unmet_requirement_blocks_terminada():
+    server, events, _ = await serve("pw")
+    s = await VncSession.open(f"ws://127.0.0.1:{server.sockets[0].getsockname()[1]}", "pw", attempts=1)
+    claim = {"thought": "x", "action": "done", "estado": "terminada", "evidencia": "msg"}
+    out = await AgentLoop(StrictGw([claim] * 3), s, "t", time.monotonic() + 60).run()
+    await s.close(); server.close()
+    assert out.estado == "fallida"

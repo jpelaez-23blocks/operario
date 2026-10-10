@@ -88,10 +88,26 @@ class Action(BaseModel):
         return round(self.x * (width - 1) / 1000), round(self.y * (height - 1) / 1000)
 
 
+class Requisito(BaseModel):
+    model_config = {"extra": "forbid"}
+    requisito: str = Field(max_length=300)
+    cumplido: bool
+    evidencia: str = Field(default="", max_length=300)
+
+
 class Verification(BaseModel):
     model_config = {"extra": "forbid"}
     verificada: bool
     evidencia: str = Field(max_length=400)
+    requisitos: list[Requisito] = Field(default_factory=list, max_length=12)
+
+    @property
+    def ok(self) -> bool:
+        """Verified only when the overall flag and every listed requirement hold."""
+        return self.verificada and all(r.cumplido for r in self.requisitos)
+
+    def faltantes(self) -> list[str]:
+        return [r.requisito for r in self.requisitos if not r.cumplido]
 
 
 def action_schema_text() -> str:

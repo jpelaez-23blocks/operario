@@ -49,16 +49,30 @@ Rules:
   two values go in one string separated by "; " in the order asked. If the question cannot be answered from
   the app, answer fallida and give no respuesta.
 - For a change or export, finish only when the screen shows proof it happened; put that proof in "evidencia".
+- Before you finish a change, check every condition in the task text and write its evidence in "notas" (what you
+  saw that satisfies it). A condition you did not check does not count as met.
+- If the task describes a person or record (name, sex, age, document number, doctor, room) and the record you found
+  contradicts any part of that description, or there are two records that fit, do NOT change anything: finish with
+  fallida and put the identifying values of each candidate in "claves".
+- If the task asks for two values and you can read only one, finish with fallida and no "respuesta".
 - Never write passwords, tokens or secrets anywhere.
 - Answer with the JSON object only."""
 
-VERIFY_SYSTEM = """You audit an agent's work on a desktop application. You see the final screenshot, the task and the
-agent's claim. Decide whether the screen itself proves the task is complete. For a change or export, be strict: if
-the proof is not visible (a form still open, an error shown, an unsaved field), verificada is false.
-For a read-only question, the answer is built from several earlier screens and the agent's notes: accept it
-(verificada true) unless the final screen or the notes contradict it. Do not reject only because the final screen
-shows one page of a longer list.
-Answer JSON only: {"verificada": bool, "evidencia": str}"""
+VERIFY_SYSTEM = """You audit an agent's work on a desktop application. You see the final screenshot, the task, the agent's
+claim, its notes and its recent actions. Work in this order:
+1. List EVERY requirement and condition in the task text, one per item: each value to write, each record that must be
+   the one named (name, id, document number), each condition ("if X then Y"), each limit (date, state, amount), each
+   thing that must NOT be touched, and, for a question, each value asked.
+2. For each requirement decide cumplido true/false with evidencia: what the final screen shows or what the agent's
+   notes record from earlier screens. Notes count as evidence for facts the final screen cannot show (which room was
+   free, what a catalog said, how many earlier absences there were). A requirement with no evidence anywhere is false.
+3. Also mark false: the record changed does not match the task's identity (name, sex, document number contradict
+   the wording), a duplicate or homonym was not ruled out, a condition was assumed instead of checked, or the claim
+   answers only part of the question.
+- For a change, proof of saving is a confirmation message or the saved record showing the new value.
+- For a read-only question, accept the answer when each asked value is supported by the screen or the notes.
+Set verificada true only if every requirement is cumplido. Answer JSON only:
+{"requisitos": [{"requisito": str, "cumplido": bool, "evidencia": str}], "verificada": bool, "evidencia": str}"""
 
 
 @dataclass
@@ -115,7 +129,7 @@ class AgentLoop:
             raw = ""
             try:
                 raw = await self.gw.chat("strong", VERIFY_SYSTEM, text + "\nAnswer with the JSON object only.", [shot],
-                                         max_tokens=400, timeout=min(40, max(8, self._left() - 5)))
+                                         max_tokens=900, timeout=min(40, max(8, self._left() - 5)))
                 return Verification.model_validate(parse_json(raw))
             except (ValueError, ValidationError):
                 log.warning("verifier returned unusable output (len=%d)", len(raw))
@@ -219,13 +233,13 @@ class AgentLoop:
             if a.action == "done":
                 if a.estado == "terminada":
                     v = await self._verify(png, a)
-                    self.emit(f"verificación: {v.verificada} — {v.evidencia[:100]}")
-                    if not v.verificada and self.verify_rejections < 2 and self._left() > 40:
+                    self.emit(f"verificación: {v.ok} — {v.evidencia[:100]}" + (f" | faltan: {'; '.join(v.faltantes())[:200]}" if v.faltantes() else ""))
+                    if not v.ok and self.verify_rejections < 2 and self._left() > 40:
                         self.verify_rejections += 1
                         self.history.append("claimed done, verifier rejected")
-                        note = f"VERIFIER: the screen does not prove completion ({v.evidencia}). Continue or fix."
+                        note = ("VERIFIER: requirements not met: " + ("; ".join(v.faltantes()) or v.evidencia)[:400] + ". Check each on screen, record the evidence in notas, then finish; if it cannot be met, finish with fallida naming the keys.")
                         continue
-                    if not v.verificada:
+                    if not v.ok:
                         return Outcome("fallida", razon="no se pudo verificar en pantalla que la tarea quedara completa",
                                        steps=steps)
                     if self.verify_rejections < 2 and self._left() > 40 and \
