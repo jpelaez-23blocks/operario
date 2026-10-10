@@ -152,3 +152,12 @@ async def test_write_is_held_while_a_premise_is_unconfirmed():
     await s.close(); server.close()
     typed = [e for e in events if e[0] == 4]
     assert out.estado == "fallida" and out.claves == ["P-0081", "P-0129"] and not typed
+
+
+def test_premise_guard_also_catches_pending_verification_notes():
+    from packages.agent_loop.loop import AgentLoop as AL
+    a = AL.__new__(AL); a.facts = []
+    a._add_fact("Bitácora: C-1188 consultorio 101->305. Falta verificar paciente y fecha.")
+    assert a.premise_unconfirmed()
+    a._add_fact("confirmado: C-1188 es de Germán Téllez 09/10")
+    assert not a.premise_unconfirmed()

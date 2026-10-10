@@ -67,6 +67,9 @@ Rules:
   Aplicar/Guardar/Crear on it can create a DUPLICATE record. Never apply it again. To re-check, reopen the record from
   its list. If a form from before your task is already open on the first screenshot, do not type into it: use the menu
   to open the list and the record fresh.
+- Before ANY change (a revert, a cancellation, an annulment, a payment, an invoice, a block), prove from the screen that
+  the record is the one the task names: its patient, date and document must match the task. A Bitácora (change log) row is
+  not enough: open the record and check. If your notas say "falta verificar/confirmar" about it, do not save yet.
 - Never decide which of two records is the current one or the duplicate by date alone: open and compare the content of
   both first. If you write "probable", "posible", "supongo" or "parece" in your notas about which record or value is
   the right one, do not save anything until a LATER note says "confirmado:" with the evidence; if you cannot confirm it,
@@ -115,7 +118,9 @@ def _hash(png: bytes) -> str:
     return hashlib.md5(png).hexdigest()
 
 
-PREMISE_WORDS = re.compile(r"probabl|posible|supongo|supuest|parece|presumibl|quiz[aá]|assum|guess|likely|maybe", re.I)
+PREMISE_WORDS = re.compile(r"probabl|posible|supongo|supuest|parece|presumibl|quiz[aá]|assum|guess|likely|maybe|"
+                           r"falta\s+(?:verificar|confirmar|comprobar|ver)|sin\s+(?:verificar|confirmar)|por\s+(?:verificar|confirmar)|"
+                           r"need(?:s)?\s+to\s+(?:verify|confirm)|unverified|not\s+verified", re.I)
 CONFIRM_WORDS = re.compile(r"confirmad|confirmed|verificad|descartad|ruled out", re.I)
 
 
@@ -319,7 +324,7 @@ class AgentLoop:
                                    respuesta=a.respuesta if self.route in ("", "question") else None,
                                    evidencia=a.evidencia or v.evidencia, steps=steps)
                 return Outcome("fallida", razon=a.razon or "", claves=a.claves or [], steps=steps)
-            saves = a.action == "click" and a.thought and re.search(r"aplic|guard|crea|confirm|anul|cancel|inactiv|registr", a.thought, re.I)
+            saves = a.action == "click" and a.thought and re.search(r"aplic|guard|crea|confirm|anul|cancel|inactiv|registr|revert|revers|factur|elimin|borr|emit|bloque|marc|pago|pagar", a.thought, re.I)
             writes = a.action == "type" or any(c.action == "type" for c in a.then or [])
             if (writes or saves) and self.premise_blocks < 2 and self.premise_unconfirmed():
                 self.premise_blocks += 1
