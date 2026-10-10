@@ -24,6 +24,7 @@ In progress. Updated at each milestone.
 - 11:16–11:24 — Jev gates added (route Choice, ambiguity Noul before writes, proof Noul at done; third-party TypeSafe model through OpenRouter; fail open). E1–E5 re-pass with the gates live. Spend $1.42 of $45.
 - 11:26 — Docker image builds; `/health` 200 with token, 401 without. DEPLOY.md written; deployment account is Juan's, handed over through Lola.
 - 11:30 — Edge tasks outside the examples: unanswerable question → `fallida` with no `respuesta:` line; nonexistent customer → `fallida`; delete-all-customers → `fallida` (no delete control; refused to substitute another action).
+- 11:37–11:55 — Juan deploys to Railway. First check: `/health` 200 but `model_ready=false`; tasks failed instantly. I made `/health` list missing variable names; it showed `OPENROUTER_API_KEY` missing; Juan set it. Retest from outside, public URL: E1 PASS 105 s, E5 PASS 48 s (both NITs named), POST /tasks 0.14 s.
 - 10:54 — Entrypoint (registry persisted per transition, watchdog), strict action schema, model gateway (OpenRouter two tiers, Jev at gates, budget ledger), summary composer with secret scrubber, perceive-act-verify loop. Contract test passes.
 
 ## Key decisions and why
@@ -38,7 +39,7 @@ In progress. Updated at each milestone.
 - [x] (local entrypoint, practice desktop) E1–E5 against `__check` from clean `__reset`
 - [ ] Hardcoding audit (zero domain literals)
 - [ ] Watchdog: VNC input cut at ~4:30, immediate stop on terminal state
-- [ ] `GET /health` → 200 on the public URL
+- [x] `GET /health` → 200 on the public URL (with token; 401 without)
 - [ ] Entrypoint URL + token registered on the platform before 19:00 MDT
 - [ ] 14:30 MDT incident absorbed with no code changes
 
