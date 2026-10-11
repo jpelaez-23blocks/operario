@@ -678,7 +678,10 @@
       var connLabel = document.getElementById('connLabel');
       var busy = false;
 
+      var openMode = false;   // the server offers its practice desktop: nothing to type
+
       function readConn() {
+        if (openMode) return true;
         conn.entry = document.getElementById('cEntry').value.trim().replace(/\/+$/, '');
         conn.token = document.getElementById('cToken').value.trim();
         conn.desk = document.getElementById('cDesk').value.trim();
@@ -693,10 +696,32 @@
         return ok;
       }
       if (location.pathname.replace(/\/+$/, '') === '/console') { document.getElementById('cEntry').value = location.origin; }
+      if (location.pathname.replace(/\/+$/, '') === '/console') {
+        fetch('/console/api/config').then(function (r) { return r.json(); }).then(function (c) {
+          if (!c.open) return;
+          openMode = true;
+          connBox.classList.add('ok');
+          connLabel.textContent = 'Escritorio de práctica del servidor · no hace falta escribir nada';
+          connBox.open = false;
+          connBox.querySelector('.conn-grid').hidden = true;
+          var footer = document.querySelector('.connection span:last-child');
+          var sub = document.querySelector('.thread-subtitle');
+          if (footer) footer.textContent = 'Runtime conectado';
+          if (sub) sub.lastChild.textContent = 'En vivo';
+          offlineNote.classList.remove('show');
+        }).catch(function () { /* manual mode stays */ });
+      }
       ['cEntry', 'cToken', 'cDesk', 'cPass'].forEach(function (id) { document.getElementById(id).addEventListener('input', readConn); });
 
       function api(path, opts) {
         opts = opts || {};
+        if (openMode) {   // /tasks/<id> -> /console/api/tasks/<id>; no Authorization header, the server holds the token
+          opts.headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+          return fetch(location.origin + '/console/api' + path, opts).then(function (r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+          });
+        }
         opts.headers = Object.assign({ 'Authorization': 'Bearer ' + conn.token, 'Content-Type': 'application/json' }, opts.headers || {});
         return fetch(conn.entry + path, opts).then(function (r) {
           if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -713,7 +738,8 @@
       function fetchFrame(id) {
         if (screenBusy) return Promise.resolve();
         screenBusy = true;
-        return fetch(conn.entry + '/tasks/' + id + '/screen', { headers: { 'Authorization': 'Bearer ' + conn.token } })
+        return fetch(openMode ? location.origin + '/console/api/tasks/' + id + '/screen' : conn.entry + '/tasks/' + id + '/screen',
+                     openMode ? {} : { headers: { 'Authorization': 'Bearer ' + conn.token } })
           .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob(); })
           .then(function (blob) {
             var url = URL.createObjectURL(blob);
@@ -848,13 +874,13 @@
         var bubble = agentBubble();
         scrollEnd();
         busy = true;
-        api('/tasks', { method: 'POST', body: JSON.stringify({ tarea: text, escritorio: { url: conn.desk, password: conn.pass } }) })
+        api('/tasks', { method: 'POST', body: JSON.stringify(openMode ? { tarea: text } : { tarea: text, escritorio: { url: conn.desk, password: conn.pass } }) })
           .then(function (res) {
             var id = res.task_id;
             runState.textContent = 'en curso';
             startScreen(id);
             function tick() {
-              api('/tasks?limit=50').then(function (rows) {
+              (openMode ? api('/tasks/' + id).then(function (t) { return [t]; }) : api('/tasks?limit=50')).then(function (rows) {
                 var task = rows.filter(function (r) { return r.task_id === id; })[0];
                 if (!task) return api('/tasks/' + id).then(function (t) { t.task_id = id; t.pasos = []; return t; });
                 return task;
@@ -868,7 +894,9 @@
           })
           .catch(function (e) {
             busy = false;
-            bubble.querySelector('.status-line').textContent = 'No se pudo enviar la tarea (' + e.message + '). Revisa la conexión, el token y el CORS del entrypoint.';
+            bubble.querySelector('.status-line').textContent = openMode && /409/.test(e.message)
+              ? 'Ya hay una tarea en curso en el escritorio de práctica. Espera a que termine.'
+              : 'No se pudo enviar la tarea (' + e.message + '). Revisa la conexión, el token y el CORS del entrypoint.';
             bubble.querySelector('.state-tag').textContent = 'error';
           });
       }

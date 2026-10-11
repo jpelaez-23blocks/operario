@@ -125,21 +125,99 @@ def _valid_desktop(d) -> bool:
     return urlparse(str(d["url"])).scheme in ("ws", "wss")
 
 
+def _start_task(tarea: str, url: str, password: str) -> str:
+    """Register a task and start it in the background; returns the task id."""
+    task_id = uuid.uuid4().hex
+    tasks[task_id] = {"estado": "en_curso", "resumen": "", "tarea": tarea[:500], "inicio": time.time(), "pasos": [],
+                      "escritorio_url": str(url)[:300]}
+    _desktops[task_id] = {"url": str(url), "password": password}
+    persist()
+    t = asyncio.create_task(_run(task_id, tarea.strip(), url, password))
+    _bg.add(t)
+    t.add_done_callback(_bg.discard)
+    return task_id
+
+
 @app.post("/tasks", dependencies=[Depends(bearer)])
 async def create_task(payload: dict):
     """Validate the task and desktop, register the task and start it in the background; answers with the task id at once."""
     tarea, desk = payload.get("tarea"), payload.get("escritorio")
     if not isinstance(tarea, str) or not tarea.strip() or not _valid_desktop(desk):
         raise HTTPException(status_code=422, detail="se requiere tarea y escritorio {url, password}")
-    task_id = uuid.uuid4().hex
-    tasks[task_id] = {"estado": "en_curso", "resumen": "", "tarea": tarea[:500], "inicio": time.time(), "pasos": [],
-                      "escritorio_url": str(desk["url"])[:300]}
-    _desktops[task_id] = {"url": str(desk["url"]), "password": desk.get("password", "")}
-    persist()
-    t = asyncio.create_task(_run(task_id, tarea.strip(), desk["url"], desk.get("password", "")))
-    _bg.add(t)
-    t.add_done_callback(_bg.discard)
+    return {"task_id": _start_task(tarea, desk["url"], desk.get("password", ""))}
+
+
+# ---- Console mode (quick proof of concept): no typing, the practice desktop comes from the server ----------------
+# Off unless CONSOLE_OPEN=1. These routes never accept a desktop from the browser: they always use the server's own
+# PRACTICE_VNC_URL / PRACTICE_VNC_PASSWORD, so they cannot be pointed at another host. The evaluator routes above
+# stay token-only. Guardrails: one console task at a time, a per-hour cap, short task text, ids the console created.
+CONSOLE_PER_HOUR = int(os.environ.get("CONSOLE_PER_HOUR", "30"))
+_console_ids: set[str] = set()
+_console_starts: list[float] = []
+
+
+def _console_open() -> bool:
+    return os.environ.get("CONSOLE_OPEN", "") == "1"
+
+
+def _console_desktop() -> Optional[dict]:
+    url, pw = os.environ.get("PRACTICE_VNC_URL", ""), os.environ.get("PRACTICE_VNC_PASSWORD", "")
+    return {"url": url, "password": pw} if _valid_desktop({"url": url, "password": pw}) else None
+
+
+def _console_guard() -> None:
+    if not _console_open():
+        raise HTTPException(status_code=404, detail="console mode is off")
+
+
+@app.get("/console/api/config", include_in_schema=False)
+def console_config():
+    """Tells the page whether it can run without typing a token and a desktop (it never reveals either)."""
+    return {"open": _console_open() and _console_desktop() is not None}
+
+
+@app.post("/console/api/tasks", include_in_schema=False)
+async def console_create_task(payload: dict):
+    """Start a task on the server's practice desktop; one at a time and capped per hour."""
+    _console_guard()
+    desk = _console_desktop()
+    tarea = payload.get("tarea")
+    if desk is None:
+        raise HTTPException(status_code=503, detail="the practice desktop is not configured on the server")
+    if not isinstance(tarea, str) or not tarea.strip() or len(tarea) > 500:
+        raise HTTPException(status_code=422, detail="se requiere una tarea de hasta 500 caracteres")
+    if any(tasks.get(i, {}).get("estado") == "en_curso" for i in _console_ids):
+        raise HTTPException(status_code=409, detail="ya hay una tarea de la consola en curso")
+    now = time.time()
+    _console_starts[:] = [t for t in _console_starts if now - t < 3600]
+    if len(_console_starts) >= CONSOLE_PER_HOUR:
+        raise HTTPException(status_code=429, detail="límite de tareas por hora de la consola alcanzado")
+    _console_starts.append(now)
+    task_id = _start_task(tarea, desk["url"], desk["password"])
+    _console_ids.add(task_id)
     return {"task_id": task_id}
+
+
+def _console_task(task_id: str) -> dict:
+    _console_guard()
+    if task_id not in _console_ids or task_id not in tasks:
+        raise HTTPException(status_code=404, detail="unknown task")
+    return tasks[task_id]
+
+
+@app.get("/console/api/tasks/{task_id}", include_in_schema=False)
+def console_get_task(task_id: str):
+    """State, summary and step log of a task started from the console (never the desktop address or password)."""
+    v = _console_task(task_id)
+    return {"task_id": task_id, "estado": v["estado"], "tarea": v.get("tarea", ""), "resumen": v["resumen"],
+            "segundos": round(v.get("fin", time.time()) - v.get("inicio", time.time())), "pasos": v.get("pasos", [])[-300:]}
+
+
+@app.get("/console/api/tasks/{task_id}/screen", include_in_schema=False)
+def console_get_screen(task_id: str):
+    """Current or last desktop frame of a console task."""
+    _console_task(task_id)
+    return get_task_screen(task_id)
 
 
 @app.get("/tasks", dependencies=[Depends(bearer)])

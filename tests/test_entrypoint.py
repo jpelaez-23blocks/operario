@@ -1,4 +1,4 @@
-import asyncio, os
+import asyncio, os, time
 os.environ["TEAM_TOKEN"] = "tok-test"
 os.environ["DATA_DIR"] = "/tmp/operario-test-data"
 import httpx, pytest
@@ -85,3 +85,56 @@ async def test_screen_serves_the_live_frame_then_the_last_one():
         assert (await c.get("/tasks/t-live/screen", headers=H)).content == b"\xff\xd8last\xff\xd9"
         appmod._sessions.pop("t-live", None)
         assert (await c.get("/tasks/t-live/screen", headers=H)).content == b"\xff\xd8last\xff\xd9"
+
+
+@pytest.fixture
+def console_env(monkeypatch):
+    monkeypatch.setenv("CONSOLE_OPEN", "1")
+    monkeypatch.setenv("PRACTICE_VNC_URL", "ws://127.0.0.1:1/practice")
+    monkeypatch.setenv("PRACTICE_VNC_PASSWORD", "pw-practice-secret")
+    appmod._console_ids.clear(); appmod._console_starts.clear()
+    yield
+    appmod._console_ids.clear(); appmod._console_starts.clear()
+
+
+@pytest.mark.asyncio
+async def test_console_mode_is_off_by_default_and_evaluator_routes_stay_token_only(monkeypatch):
+    monkeypatch.delenv("CONSOLE_OPEN", raising=False)
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=appmod.app), base_url="http://t") as c:
+        assert (await c.get("/console/api/config")).json() == {"open": False}
+        assert (await c.post("/console/api/tasks", json={"tarea": "x"})).status_code == 404
+        assert (await c.post("/tasks", json={"tarea": "x", "escritorio": {"url": "ws://h/w", "password": "p"}})).status_code == 401
+        assert (await c.get("/tasks")).status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_console_mode_runs_without_a_token_on_the_server_desktop_and_never_reveals_it(console_env):
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=appmod.app), base_url="http://t") as c:
+        assert (await c.get("/console/api/config")).json() == {"open": True}
+        r = await c.post("/console/api/tasks", json={"tarea": "Cuenta algo", "escritorio": {"url": "ws://evil/w", "password": "x"}})
+        assert r.status_code == 200
+        tid = r.json()["task_id"]
+        assert appmod._desktops[tid]["url"] == "ws://127.0.0.1:1/practice"   # the browser's desktop is ignored
+        for _ in range(40):
+            t = (await c.get(f"/console/api/tasks/{tid}")).json()
+            if t["estado"] != "en_curso": break
+            await asyncio.sleep(0.5)
+        body = (await c.get(f"/console/api/tasks/{tid}")).text
+        assert "pw-practice-secret" not in body and "127.0.0.1:1" not in body and "evil" not in body
+        # ids that the console did not create are invisible, and the evaluator list stays closed
+        appmod.tasks["other"] = {"estado": "terminada", "resumen": "", "pasos": []}
+        assert (await c.get("/console/api/tasks/other")).status_code == 404
+        assert (await c.get("/tasks")).status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_console_mode_guardrails_one_at_a_time_hourly_cap_and_length(console_env, monkeypatch):
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=appmod.app), base_url="http://t") as c:
+        appmod.tasks["busy"] = {"estado": "en_curso", "resumen": "", "pasos": []}
+        appmod._console_ids.add("busy")
+        assert (await c.post("/console/api/tasks", json={"tarea": "otra"})).status_code == 409
+        appmod.tasks["busy"]["estado"] = "terminada"
+        assert (await c.post("/console/api/tasks", json={"tarea": "x" * 501})).status_code == 422
+        monkeypatch.setattr(appmod, "CONSOLE_PER_HOUR", 1)
+        appmod._console_starts[:] = [time.time()]
+        assert (await c.post("/console/api/tasks", json={"tarea": "ok"})).status_code == 429
