@@ -161,3 +161,22 @@ def test_premise_guard_also_catches_pending_verification_notes():
     assert a.premise_unconfirmed()
     a._add_fact("confirmado: C-1188 es de Germán Téllez 09/10")
     assert not a.premise_unconfirmed()
+
+
+async def test_type_with_coordinates_focuses_the_field_first():
+    """A type action that carries x,y must click there before Ctrl+A, or the text goes to an unfocused page."""
+    import struct
+    out, ev = await run([
+        {"thought": "set the date", "action": "type", "x": 300, "y": 160, "text": "14/10/2026", "replace": True},
+        {"thought": "done", "action": "done", "estado": "terminada", "evidencia": "msg"}])
+    first_pointer = next(e for e in ev if e[0] == 5)
+    first_key = next(i for i, e in enumerate(ev) if e[0] == 4)
+    assert struct.unpack(">HH", first_pointer[2:6]) != (0, 0)
+    assert ev.index(first_pointer) < first_key and out.estado == "terminada"
+
+
+async def test_give_up_for_lack_of_time_is_refused_while_time_remains():
+    script = [{"thought": "poco tiempo", "action": "done", "estado": "fallida", "razon": "faltó tiempo", "claves": ["P-1"]},
+              {"thought": "done properly", "action": "done", "estado": "fallida", "razon": "ambiguo", "claves": ["P-1", "P-2"]}]
+    out, _ = await run(script, left=200)
+    assert out.razon == "ambiguo" and out.claves == ["P-1", "P-2"]

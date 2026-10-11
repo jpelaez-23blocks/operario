@@ -161,6 +161,7 @@ class AgentLoop:
         self.facts: list[str] = []
         self.rejected_at = -99
         self.premise_blocks = 0
+        self.giveup_blocks = 0
         self.next_wait = 1.0
 
     def _left(self) -> float:
@@ -249,6 +250,10 @@ class AgentLoop:
         elif a.action == "double_click":
             await self.s.double_click(*a.px(w, h))
         elif a.action == "type":
+            if getattr(a, "x", None) is not None and getattr(a, "y", None) is not None:
+                # focus the field the model pointed at: Ctrl+A on an unfocused page selects the page text and the typed text is lost
+                await self.s.click(*_px(a, w, h))
+                await asyncio.sleep(0.2)
             if a.replace:
                 await self.s.select_all_and_type(a.text or "")
             else:
@@ -330,6 +335,14 @@ class AgentLoop:
                     return Outcome("terminada", hizo=a.thought,
                                    respuesta=a.respuesta if self.route in ("", "question") else None,
                                    evidencia=a.evidencia or v.evidencia, steps=steps)
+                if a.estado == "fallida" and re.search(r"tiempo|time|pocos pasos|few steps|l[ií]mite|limit|steps left|pasos restantes", (a.razon or "") + " " + a.thought, re.I) \
+                        and self._left() > 60 and self.giveup_blocks < 2:
+                    # the agent quit "for lack of time" while more than 60 s remain: send it back to work
+                    self.giveup_blocks += 1
+                    self.history.append("tried to give up for lack of time with time left")
+                    note = (f"TIME: you still have {int(self._left())} s. Do not finish for lack of time. Continue: "
+                            "note what you still need (for example the service of the appointment) and do it.")
+                    continue
                 return Outcome("fallida", razon=a.razon or "", claves=a.claves or [], steps=steps)
             saves = a.action == "click" and a.thought and re.search(r"aplic|guard|crea|confirm|anul|cancel|inactiv|registr|revert|revers|factur|elimin|borr|emit|bloque|marc|pago|pagar", a.thought, re.I)
             writes = a.action == "type" or any(c.action == "type" for c in a.then or [])
