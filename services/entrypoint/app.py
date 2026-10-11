@@ -85,6 +85,7 @@ def persist() -> None:
 
 @app.on_event("startup")
 async def _startup() -> None:
+    """Reload the registry from disk; tasks that were running at a restart become fallida."""
     if _state_file.exists():
         try:
             for k, v in json.loads(_state_file.read_text()).items():
@@ -96,6 +97,7 @@ async def _startup() -> None:
 
 
 def bearer(authorization: str = Header("")) -> None:
+    """Reject the request unless it carries the team token as a Bearer header."""
     if not TEAM_TOKEN or not hmac.compare_digest(authorization, f"Bearer {TEAM_TOKEN}"):
         raise HTTPException(status_code=401, detail="unauthorized")
 
@@ -111,6 +113,7 @@ def health(authorization: str = Header("")):
 
 
 def _valid_desktop(d) -> bool:
+    """True when the desktop object has a ws or wss URL and a string password."""
     if not isinstance(d, dict) or not d.get("url") or not isinstance(d.get("password", ""), str):
         return False
     return urlparse(str(d["url"])).scheme in ("ws", "wss")
@@ -118,6 +121,7 @@ def _valid_desktop(d) -> bool:
 
 @app.post("/tasks", dependencies=[Depends(bearer)])
 async def create_task(payload: dict):
+    """Validate the task and desktop, register the task and start it in the background; answers with the task id at once."""
     tarea, desk = payload.get("tarea"), payload.get("escritorio")
     if not isinstance(tarea, str) or not tarea.strip() or not _valid_desktop(desk):
         raise HTTPException(status_code=422, detail="se requiere tarea y escritorio {url, password}")
@@ -144,6 +148,7 @@ def list_tasks(limit: int = 20):
 
 @app.get("/tasks/{task_id}/desktop", dependencies=[Depends(bearer)])
 def get_task_desktop(task_id: str):
+    """The desktop URL and password of one task, in memory only, for the team token."""
     d = _desktops.get(task_id)
     if d is None:
         raise HTTPException(status_code=404, detail="unknown task")
@@ -152,6 +157,7 @@ def get_task_desktop(task_id: str):
 
 @app.get("/tasks/{task_id}", dependencies=[Depends(bearer)])
 def get_task(task_id: str):
+    """State of one task: en_curso, terminada or fallida plus the summary; an unknown id answers fallida so a restart never stalls the evaluator."""
     task = tasks.get(task_id)
     if task is None:
         # The registry is in memory and resets on a restart. Answer a terminal state so the
@@ -173,6 +179,7 @@ def _finish(task_id: str, estado: str, resumen: str, session: Optional[VncSessio
 
 
 async def _run(task_id: str, tarea: str, url: str, password: str) -> None:
+    """Run one task end to end with the watchdog: cut input at the soft limit, publish a terminal state once, always close the session."""
     start = time.monotonic()
     scrub = Scrubber([password, TEAM_TOKEN, gw.key])
     holder: dict = {"session": None, "emit": []}

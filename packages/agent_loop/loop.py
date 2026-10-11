@@ -108,6 +108,7 @@ unsaved form, a different record). Missing evidence is NOT a contradiction: set 
 
 @dataclass
 class Outcome:
+    """Final result of one task: estado (terminada|fallida), what was done, the answer, the reason keys and the evidence."""
     estado: str                      # terminada | fallida
     hizo: str = ""
     respuesta: Optional[str] = None
@@ -132,6 +133,7 @@ CONFIRM_WORDS = re.compile(r"confirmad|confirmed|verificad|descartad|ruled out",
 
 
 class AgentLoop:
+    """Perceive -> decide -> act -> verify loop for one task on one desktop. Holds the append-only facts, the Jev gates and the verification budget."""
     def premise_unconfirmed(self) -> bool:
         """True when the latest note about an uncertain premise has no later confirmation."""
         last_doubt = max((i for i, f in enumerate(self.facts) if PREMISE_WORDS.search(f)), default=-1)
@@ -168,6 +170,7 @@ class AgentLoop:
         return self.deadline - time.monotonic()
 
     async def _decide(self, shot: bytes, prev: Optional[bytes], note: str, tier: str) -> Action:
+        """Ask the model for one validated Action from the current screenshot, the facts and the history; retries and escalates tiers on invalid output."""
         hist = "\n".join(f"{i + 1}. {h}" for i, h in enumerate(self.history[-12:])) or "(none yet)"
         text = f"TASK: {self.task}\n{self.route_hint}\nTIME LEFT: {max(0, int(self._left()))} s\nYOUR NOTES SO FAR (all earlier facts): {self.notes or '(none)'}\n\nACTIONS SO FAR:\n{hist}\n\n{note}\nCurrent screenshot attached."
         imgs = [shot]
@@ -181,6 +184,7 @@ class AgentLoop:
         raise RuntimeError("el modelo no produjo una acción válida")
 
     async def _verify(self, shot: bytes, claim: Action) -> Verification:
+        """Ask the strong model to check every requirement of the task against the final screenshot and the agent's facts; falls back to the agent's own evidence if the verifier is unavailable."""
         text = (f"TASK: {self.task}\nAGENT CLAIM: estado={claim.estado}, evidencia={claim.evidencia!r}, "
                 f"respuesta={claim.respuesta!r}\nAGENT NOTES: {self.notes or '(none)'}\nACTIONS:\n" + "\n".join(self.history[-10:]))
         for attempt in range(2):
@@ -197,6 +201,7 @@ class AgentLoop:
 
     # ---- Jev decision gates (third-party TypeSafe model, fail open) ----------
     async def _gate_route(self) -> None:
+        """Jev Choice at entry: classify the task (change, question, export, unsafe) and keep a hint for the prompt."""
         ans = await self.gw.jev(f"Task given to an operator of a desktop application: {self.task}", {"route": {
             "type": "choice", "instructions": "What kind of work is this task",
             "criteria": {"change": "Create or modify records", "question": "Answer a question, changing nothing",
@@ -210,6 +215,7 @@ class AgentLoop:
                 self.route_hint += "This is read-only: change nothing. "
 
     async def _gate_secret(self) -> bool:
+        """Jev Noul at entry: True when the task asks to reveal, copy or write a credential; such tasks end fallida without opening any screen."""
         ans = await self.gw.jev(f"Task given to an operator of a desktop application: {self.task}", {"secret": {
             "type": "noul", "instructions": "The task asks the operator to reveal, copy, read out or write down a password, "
             "key, token, API key or other credential, for example into the summary or answer"}})
@@ -218,6 +224,7 @@ class AgentLoop:
         return v >= 0.75
 
     async def _gate_ambiguity(self) -> float:
+        """Jev Noul before a write: how likely it is that several records fit the task. Fails open (0.0)."""
         state = (f"Task: {self.task}\nWhat the operator observed and did so far:\n" + "\n".join(self.history[-10:]))
         ans = await self.gw.jev(state, {"amb": {"type": "noul", "instructions":
             "The operator saw more than one record that fits the person or item named in the task, "
@@ -227,6 +234,7 @@ class AgentLoop:
         return v
 
     async def _gate_proof(self, claim: Action, evidence: str) -> float:
+        """Jev Noul at done: does the evidence show the task was completed, not just attempted. Fails open (1.0)."""
         state = f"Task: {self.task}\nClaim: {claim.estado}. Evidence read from the final screen: {evidence}"
         ans = await self.gw.jev(state, {"proof": {"type": "noul", "instructions":
             "The evidence shows the task was actually completed (saved, exported or answered), not just attempted"}})
@@ -235,6 +243,7 @@ class AgentLoop:
         return v
 
     async def _act(self, a: Action) -> None:
+        """Run the main action, then any chained follow-ups, waiting after typing before a chained click."""
         await self._do(a)
         prev = a
         for c in a.then or []:
@@ -279,6 +288,7 @@ class AgentLoop:
         return " ".join(bits) + f" — {a.thought[:120]}"
 
     async def run(self) -> Outcome:
+        """Run until the model finishes, the verifier accepts or rejects, or the deadline passes. Returns an Outcome."""
         prev_hash, stale, steps, prev_png = "", 0, 0, None
         note = ""
         await self._gate_route()

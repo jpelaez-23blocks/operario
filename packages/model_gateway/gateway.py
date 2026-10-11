@@ -19,10 +19,12 @@ BASE = os.environ.get("OPENROUTER_BASE", "https://openrouter.ai/api")
 
 
 class BudgetExceeded(Exception):
+    """Raised when the spend ledger reaches the configured cap."""
     pass
 
 
 class Ledger:
+    """Spend counter persisted to a JSON file; check() enforces the cap before every paid call."""
     def __init__(self, path: str, cap: float):
         self.path, self.cap = Path(path), cap
         self._lock = threading.Lock()
@@ -45,6 +47,7 @@ class Ledger:
 
 
 class Gateway:
+    """OpenRouter client: two model tiers with retries and a budget ledger, plus the Jev Decisions API (third-party, TypeSafe) that fails open."""
     def __init__(self):
         self.key = os.environ.get("OPENROUTER_API_KEY", "")
         self.fast = os.environ.get("MODEL_FAST", "")
@@ -121,6 +124,7 @@ async def _sleep(s: float) -> None:
 
 
 def parse_json(text: str) -> dict:
+    """Extract the first JSON object from a model answer, tolerating code fences."""
     t = text.strip()
     if t.startswith("```"):
         t = t.strip("`")

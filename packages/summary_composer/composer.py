@@ -9,6 +9,7 @@ REDACTED = "[oculto]"
 
 
 class Scrubber:
+    """Removes every known secret and credential-looking value from text before it can reach a summary."""
     def __init__(self, secrets: Iterable[str]):
         self.secrets = sorted({s for s in secrets if s and len(s) >= 3}, key=len, reverse=True)
 
@@ -23,6 +24,7 @@ class Scrubber:
 
 def compose(estado: str, *, scrub: Scrubber, hizo: str = "", respuesta: Optional[str] = None,
             razon: str = "", claves: Optional[list[str]] = None, evidencia: str = "") -> str:
+    """Build the resumen from structured outcome data: a 'respuesta:' line only on answered tasks, evidence for changes, reason keys for failures; always scrubbed."""
     lines: list[str] = []
     if respuesta and respuesta.strip() and estado == "terminada":
         lines.append(f"respuesta: {respuesta.strip()}")

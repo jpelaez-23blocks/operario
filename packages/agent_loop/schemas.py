@@ -34,6 +34,7 @@ MAX_CHAIN = 3
 
 
 class Action(BaseModel):
+    """One model action. Coordinates are normalized 0-1000 and range-checked; 'then' chains up to three follow-up actions; 'done' carries the final estado."""
     model_config = {"extra": "forbid"}
 
     thought: str = Field(max_length=2000)
@@ -89,6 +90,7 @@ class Action(BaseModel):
 
 
 class Requisito(BaseModel):
+    """One requirement of the task, with whether it is met and the evidence for it."""
     model_config = {"extra": "forbid"}
     requisito: str = Field(max_length=300)
     cumplido: bool
@@ -96,6 +98,7 @@ class Requisito(BaseModel):
 
 
 class Verification(BaseModel):
+    """Verifier verdict: overall flag, whether the screen or notes contradict the claim, and the per-requirement checklist."""
     model_config = {"extra": "forbid"}
     verificada: bool
     evidencia: str = Field(max_length=400)
@@ -108,6 +111,7 @@ class Verification(BaseModel):
         return self.verificada and all(r.cumplido for r in self.requisitos)
 
     def faltantes(self) -> list[str]:
+        """Texts of the requirements that are not met."""
         return [r.requisito for r in self.requisitos if not r.cumplido]
 
 

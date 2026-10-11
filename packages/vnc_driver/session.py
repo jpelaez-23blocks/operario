@@ -50,12 +50,14 @@ def _reverse_bits(b: int) -> int:
 
 
 def vnc_encrypt(password: str, challenge: bytes) -> bytes:
+    """VNC password challenge response (DES with bit-reversed key bytes)."""
     key = password.encode("latin-1", "replace")[:8].ljust(8, b"\x00")
     key = bytes(_reverse_bits(b) for b in key)
     return DES.new(key, DES.MODE_ECB).encrypt(challenge)
 
 
 def keysym_for_char(ch: str) -> int:
+    """X11 keysym for one character (Latin-1 as is, other code points as Unicode keysyms)."""
     cp = ord(ch)
     if ch == "\n":
         return KEYSYMS["enter"]
@@ -83,6 +85,7 @@ class _Reader:
 
 
 class VncSession:
+    """RFB 3.8 client over a websockify websocket: keeps a numpy framebuffer current and sends pointer and key input; input can be frozen for good."""
     def __init__(self, url: str, password: str):
         self.url = url
         self._password = password
@@ -131,6 +134,7 @@ class VncSession:
     # ---- connection -------------------------------------------------------
     @classmethod
     async def open(cls, url: str, password: str, attempts: int = 3) -> "VncSession":
+        """Connect and authenticate with retries; raises VncError without ever echoing the password."""
         last: Optional[BaseException] = None
         for i in range(attempts):
             s = cls(url, password)
@@ -145,6 +149,7 @@ class VncSession:
         raise VncError(f"no se pudo conectar al escritorio: {type(last).__name__}")
 
     async def _connect(self) -> None:
+        """Handshake, authentication, pixel format and encodings setup, then wait for the first full frame."""
         try:
             self._ws = await websockets.connect(
                 self.url, subprotocols=["binary"], max_size=64 * 1024 * 1024,
@@ -195,6 +200,7 @@ class VncSession:
         await self._send(struct.pack(">BBHHHH", 3, 1 if incremental else 0, 0, 0, self.width, self.height))
 
     async def close(self) -> None:
+        """Freeze input, stop the pump and close the websocket."""
         self._frozen = True
         if self._pump:
             self._pump.cancel()
@@ -210,6 +216,7 @@ class VncSession:
 
     # ---- framebuffer pump -------------------------------------------------
     async def _pump_loop(self) -> None:
+        """Read server messages forever and request incremental updates; stores any error for the callers."""
         r = self._reader
         try:
             while True:
@@ -257,6 +264,7 @@ class VncSession:
             raise VncError(f"codificación no soportada {enc}")
 
     def _decode_zrle(self, data: bytes, x: int, y: int, w: int, h: int) -> None:
+        """Decode one ZRLE rectangle (raw, solid, packed palette, RLE and palette RLE tiles) into the framebuffer."""
         p = 0
         fb = self.fb
 
@@ -340,16 +348,19 @@ class VncSession:
             await asyncio.sleep(0.05)
 
     def screenshot(self) -> Image.Image:
+        """Copy of the current framebuffer as a PIL image."""
         if self._pump_error:
             raise VncError(f"conexión perdida: {type(self._pump_error).__name__}")
         return Image.fromarray(self.fb.copy(), "RGB")
 
     def screenshot_png(self) -> bytes:
+        """Current screen as PNG bytes."""
         buf = io.BytesIO()
         self.screenshot().save(buf, format="PNG", optimize=False)
         return buf.getvalue()
 
     def screenshot_jpeg(self, quality: int = 80) -> bytes:
+        """Current screen as JPEG bytes, the format sent to the model."""
         buf = io.BytesIO()
         self.screenshot().save(buf, format="JPEG", quality=quality)
         return buf.getvalue()
@@ -389,6 +400,7 @@ class VncSession:
         await self._pointer(x, y, 0)
 
     async def double_click(self, x: int, y: int) -> None:
+        """Two clicks with a short pause."""
         await self.click(x, y)
         await asyncio.sleep(0.12)
         await self.click(x, y)
@@ -403,6 +415,7 @@ class VncSession:
             await asyncio.sleep(0.06)
 
     async def drag(self, x1: int, y1: int, x2: int, y2: int) -> None:
+        """Press at the start, move in steps, release at the end."""
         await self._pointer(x1, y1, 0)
         await asyncio.sleep(0.05)
         await self._pointer(x1, y1, 1)
@@ -437,6 +450,7 @@ class VncSession:
             await asyncio.sleep(0.02)
 
     async def type_text(self, text: str, delay: float = 0.02) -> None:
+        """Type text one key at a time."""
         for ch in text:
             sym = keysym_for_char(ch)
             await self._key(sym, True)
