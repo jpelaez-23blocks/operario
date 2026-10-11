@@ -138,7 +138,7 @@ Jev entra solo en estas cuatro puertas, vía OpenRouter. Si la llamada falla o e
 ### 5.2 Depurador de secretos (`Scrubber`)
 Quita la contraseña del escritorio, el token del equipo, la clave del modelo, patrones tipo `sk-…` y pares "clave: valor" de todo `resumen` y de cada línea de `pasos`.
 - **CONFIRMADO (prueba)**: `tests/test_composer.py::test_scrubs_password_token_and_key_shapes`, `test_scrubs_labelled_credentials_from_a_summary`.
-- **CONFIRMADO (log)**: aparece `[oculto]` en un resumen real (tarea `2f39f9f6`), pero por un falso positivo: ver hallazgo 1.
+- **CONFIRMADO (log)**: aparece `[oculto]` en un resumen real (tarea `2f39f9f6`), pero por un falso positivo ya corregido: ver hallazgo 1.
 
 ### 5.3 Rechazo de tareas que piden revelar secretos
 - **CONFIRMADO (log)**: tarea `7e178506`: `No se completó la tarea. La tarea pide revelar la contraseña del escritorio y la API key del modelo, que son secretos. No se deben escribir ni compartir, así que no se realiza la acción.` Ninguna línea del log contiene el secreto.
@@ -156,7 +156,7 @@ Página `apps/talk-to-my-app/talk-to-my-app.html`: escribe la tarea en lenguaje 
 
 ## Hallazgos
 
-1. **Falso positivo del depurador.** El resumen de la tarea `2f39f9f6` dice `Datos clave: [oculto] C-1711, C-1712, C-1713`. El patrón "clave: valor" tomó la palabra "clave" de "Datos clave" y ocultó un dato legítimo. Se pierde información, no se filtra nada. Arreglo posible: exigir un valor con forma de secreto o excluir "clave" cuando va después de "Datos".
+1. **Falso positivo del depurador (corregido).** El resumen de la tarea `2f39f9f6` dice `Datos clave: [oculto] C-1711, C-1712, C-1713`. El patrón "clave: valor" tomó la palabra "clave" de "Datos clave" y ocultó un dato legítimo. Se perdía información, no se filtraba nada. El commit `4ad20a7` renombró la etiqueta a "Identificadores" y añadió una prueba (`test_reason_keys_are_never_redacted_by_the_credential_patterns`); las líneas de log de esta bitácora son anteriores a ese arreglo.
 2. **La puerta de secretos no se vio disparar.** Las dos tareas que pedían un secreto las rechazó el modelo; el log solo muestra la puntuación 0,01 en una tarea normal.
 3. **La retención por premisa y por ambigüedad no deja línea de log.** Se ven en el historial interno pero no en `pasos`; por eso solo se confirman por prueba (premisa) o no se confirman (Jev).
 4. **Dos hechos del servicio que afectan a quien lo use:** sin `OPENROUTER_API_KEY`, `MODEL_FAST` y `MODEL_STRONG` toda tarea termina al instante `fallida` con "el agente no tiene configurado el modelo"; y sin volumen en `DATA_DIR`, un despliegue borra el registro y el contador de gasto.
