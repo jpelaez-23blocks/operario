@@ -180,3 +180,8 @@ async def test_give_up_for_lack_of_time_is_refused_while_time_remains():
               {"thought": "done properly", "action": "done", "estado": "fallida", "razon": "ambiguo", "claves": ["P-1", "P-2"]}]
     out, _ = await run(script, left=200)
     assert out.razon == "ambiguo" and out.claves == ["P-1", "P-2"]
+
+
+def test_prompt_tells_the_agent_to_search_names_without_accents_and_treat_near_homonyms_as_candidates():
+    from packages.agent_loop.loop import SYSTEM
+    assert "WITHOUT accents" in SYSTEM and "near-homonyms" in SYSTEM and "name both identifiers" in SYSTEM

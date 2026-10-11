@@ -77,6 +77,10 @@ Rules:
 - Before ANY change (a revert, a cancellation, an annulment, a payment, an invoice, a block), prove from the screen that
   the record is the one the task names: its patient, date and document must match the task. A Bitácora (change log) row is
   not enough: open the record and check. If your notas say "falta verificar/confirmar" about it, do not save yet.
+- When you search for a person or record by name, also search with the surname alone and WITHOUT accents or case (for
+  example "Gomez" for "Gómez"): the search box can be accent-sensitive and hide near-homonyms. Two records that differ only by
+  an accent, a case, a middle name or a document number are two candidates: do not change anything, finish with fallida and
+  name both identifiers. A single result for the exact spelling is not proof that the person is unique.
 - Never decide which of two records is the current one or the duplicate by date alone: open and compare the content of
   both first. If you write "probable", "posible", "supongo" or "parece" in your notas about which record or value is
   the right one, do not save anything until a LATER note says "confirmado:" with the evidence; if you cannot confirm it,
