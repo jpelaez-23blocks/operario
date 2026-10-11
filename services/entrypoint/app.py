@@ -19,7 +19,8 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import urlparse
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Response
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from packages.agent_loop.loop import AgentLoop, Outcome
@@ -68,6 +69,11 @@ _bg: set = set()
 # Desktop address and password per task, in memory only: never written to the registry file, never logged,
 # never in a resumen. Served only to the team token so a run's tasks can be replayed on the same desktop.
 _desktops: dict[str, dict] = {}
+# Live view: the VNC session of each running task and the last frame of each finished one (memory only).
+_sessions: dict[str, VncSession] = {}
+_last_frame: dict[str, bytes] = {}
+LIVE_MAX_FRAMES = 40
+CONSOLE_HTML = Path(__file__).resolve().parents[2] / "apps" / "talk-to-my-app" / "talk-to-my-app.html"
 _state_file = DATA_DIR / "tasks.json"
 
 
@@ -155,6 +161,31 @@ def get_task_desktop(task_id: str):
     return d
 
 
+@app.get("/console", include_in_schema=False)
+def console_page():
+    """The Talk to My App page (static, no secrets): the user types the entrypoint token and desktop in the page itself."""
+    if not CONSOLE_HTML.exists():
+        raise HTTPException(status_code=404, detail="console not available")
+    return FileResponse(CONSOLE_HTML, media_type="text/html; charset=utf-8", headers={"Cache-Control": "no-store"})
+
+
+@app.get("/tasks/{task_id}/screen", dependencies=[Depends(bearer)])
+def get_task_screen(task_id: str):
+    """Current desktop frame of a task as a JPEG: live while it runs, the last frame after it ends."""
+    sess = _sessions.get(task_id)
+    frame = None
+    if sess is not None:
+        try:
+            frame = sess.screenshot_jpeg(quality=70, width=960)
+        except Exception:  # noqa: BLE001
+            frame = None
+    if frame is None:
+        frame = _last_frame.get(task_id)
+    if frame is None:
+        raise HTTPException(status_code=404, detail="no frame")
+    return Response(content=frame, media_type="image/jpeg", headers={"Cache-Control": "no-store"})
+
+
 @app.get("/tasks/{task_id}", dependencies=[Depends(bearer)])
 def get_task(task_id: str):
     """State of one task: en_curso, terminada or fallida plus the summary; an unknown id answers fallida so a restart never stalls the evaluator."""
@@ -171,6 +202,10 @@ def _finish(task_id: str, estado: str, resumen: str, session: Optional[VncSessio
     """Single terminal transition. Cuts input first, then publishes; first call wins."""
     if session is not None:
         session.freeze()
+        try:  # keep the final frame BEFORE the state is published, so the console's last fetch finds it
+            _last_frame[task_id] = session.screenshot_jpeg(quality=70, width=960)
+        except Exception:  # noqa: BLE001
+            pass
     if tasks[task_id]["estado"] != "en_curso":
         return
     tasks[task_id].update({"estado": estado, "resumen": resumen, "fin": time.time()})
@@ -195,6 +230,7 @@ async def _run(task_id: str, tarea: str, url: str, password: str) -> None:
             if not gw.ready:
                 return Outcome("fallida", razon="el agente no tiene configurado el modelo")
             holder["session"] = await VncSession.open(url, password)
+            _sessions[task_id] = holder["session"]
             emit("conectado al escritorio")
             return await AgentLoop(gw, holder["session"], tarea, start + SOFT_CUT, emit).run()
 
@@ -227,6 +263,13 @@ async def _run(task_id: str, tarea: str, url: str, password: str) -> None:
     finally:
         s = holder["session"]
         if s is not None:
+            try:
+                _last_frame[task_id] = s.screenshot_jpeg(quality=70, width=960)
+            except Exception:  # noqa: BLE001
+                pass
+            _sessions.pop(task_id, None)
+            while len(_last_frame) > LIVE_MAX_FRAMES:
+                _last_frame.pop(next(iter(_last_frame)))
             await s.close()
 
 

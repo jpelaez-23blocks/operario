@@ -6,6 +6,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY services/entrypoint/ ./services/entrypoint/
 COPY packages/ ./packages/
+COPY apps/talk-to-my-app/ ./apps/talk-to-my-app/
 ENV PYTHONPATH=/srv/operario
 
 # OPENROUTER_API_KEY y TEAM_TOKEN se inyectan como variables de entorno. Nunca en el repo.

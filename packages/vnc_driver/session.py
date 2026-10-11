@@ -359,10 +359,13 @@ class VncSession:
         self.screenshot().save(buf, format="PNG", optimize=False)
         return buf.getvalue()
 
-    def screenshot_jpeg(self, quality: int = 80) -> bytes:
-        """Current screen as JPEG bytes, the format sent to the model."""
+    def screenshot_jpeg(self, quality: int = 80, width: Optional[int] = None) -> bytes:
+        """Current screen as JPEG bytes, the format sent to the model; `width` downsizes for the live view."""
+        img = self.screenshot()
+        if width and width < img.width:
+            img = img.resize((width, round(img.height * width / img.width)), Image.LANCZOS)
         buf = io.BytesIO()
-        self.screenshot().save(buf, format="JPEG", quality=quality)
+        img.save(buf, format="JPEG", quality=quality)
         return buf.getvalue()
 
     # ---- input ------------------------------------------------------------
