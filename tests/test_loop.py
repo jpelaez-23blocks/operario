@@ -103,6 +103,24 @@ async def test_credential_request_is_refused_without_acting():
     assert out.estado == "fallida" and out.steps == 0 and not any(e[0] == 5 for e in events)
 
 
+class CountingGw(FakeGw):
+    secret_calls = 0
+
+    async def jev(self, state, questions, **kw):
+        if "secret" in questions:
+            self.secret_calls += 1
+        return None
+
+
+async def test_secret_gate_runs_once_per_task():
+    server, events, _ = await serve("pw")
+    s = await VncSession.open(f"ws://127.0.0.1:{server.sockets[0].getsockname()[1]}", "pw", attempts=1)
+    gw = CountingGw([{"thought": "saved", "action": "done", "estado": "terminada", "evidencia": "row shown"}])
+    await AgentLoop(gw, s, "t", time.monotonic() + 30).run()
+    await s.close(); server.close()
+    assert gw.secret_calls == 1
+
+
 async def test_missing_evidence_without_contradiction_is_accepted_after_a_short_lookup():
     claim = {"thought": "x", "action": "done", "estado": "terminada", "evidencia": "saved msg"}
     out, _ = await run([claim] * 3, approve=False, left=200, no_contra=True)

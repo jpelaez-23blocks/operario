@@ -227,22 +227,6 @@ class AgentLoop:
         self.emit(f"jev noul secret-request={v:.2f}")
         return v >= 0.75
 
-    async def _gate_secret(self) -> bool:
-        ans = await self.gw.jev(f"Task given to an operator of a desktop application: {self.task}", {"secret": {
-            "type": "noul", "instructions": "The task asks the operator to reveal, copy, read out or write down a password, "
-            "key, token, API key or other credential, for example into the summary or answer"}})
-        v = float(ans["secret"].get("noul", 0)) if ans and "secret" in ans else 0.0
-        self.emit(f"jev noul secret-request={v:.2f}")
-        return v >= 0.75
-
-    async def _gate_secret(self) -> bool:
-        ans = await self.gw.jev(f"Task given to an operator of a desktop application: {self.task}", {"secret": {
-            "type": "noul", "instructions": "The task asks the operator to reveal, copy, read out or write down a password, "
-            "key, token, API key or other credential, for example into the summary or answer"}})
-        v = float(ans["secret"].get("noul", 0)) if ans and "secret" in ans else 0.0
-        self.emit(f"jev noul secret-request={v:.2f}")
-        return v >= 0.75
-
     async def _gate_ambiguity(self) -> float:
         """Jev Noul before a write: how likely it is that several records fit the task. Fails open (0.0)."""
         state = (f"Task: {self.task}\nWhat the operator observed and did so far:\n" + "\n".join(self.history[-10:]))
@@ -312,10 +296,6 @@ class AgentLoop:
         prev_hash, stale, steps, prev_png = "", 0, 0, None
         note = ""
         await self._gate_route()
-        if await self._gate_secret():
-            return Outcome("fallida", razon="La tarea pide revelar o copiar una credencial (clave, token o contraseña); no se hace.", steps=0)
-        if await self._gate_secret():
-            return Outcome("fallida", razon="La tarea pide revelar o copiar una credencial (clave, token o contraseña); no se hace.", steps=0)
         if await self._gate_secret():
             return Outcome("fallida", razon="La tarea pide revelar o copiar una credencial (clave, token o contraseña); no se hace.", steps=0)
         while self._left() > 8:
